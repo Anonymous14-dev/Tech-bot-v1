@@ -16,7 +16,7 @@ const handler = async (msg, { conn }) => {
 
     const metadata = await conn.groupMetadata(chatId)
     const participant = metadata.participants.find(p => p.id.includes(sender))
-    const isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin
+    const isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin'
 
     const participants = metadata.participants
     const mentionList = participants.map(p => `➪ @${p.id.split('@')[0]}`).join('\n')
