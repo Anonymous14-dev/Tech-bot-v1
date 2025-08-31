@@ -1,4 +1,4 @@
-const handler = async (msg, { conn, isOwner }) => {
+const handler = async (msg, { conn }) => {
   try {
     const chatId = msg.key.remoteJid
     const sender = (msg.key.participant || msg.key.remoteJid).replace(/[^0-9]/g, '')
@@ -16,20 +16,13 @@ const handler = async (msg, { conn, isOwner }) => {
 
     const metadata = await conn.groupMetadata(chatId)
     const participant = metadata.participants.find(p => p.id.includes(sender))
-    const isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin'
-
-    if (!isAdmin && !isOwner && !isBotMessage) {
-      await conn.sendMessage(chatId, {
-        text: '❌ *Este comando solo puede usarlo un administrador o el dueño del bot.*'
-      }, { quoted: msg })
-      return
-    }
+    const isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin
 
     const participants = metadata.participants
     const mentionList = participants.map(p => `➪ @${p.id.split('@')[0]}`).join('\n')
     const messageText = msg.message?.conversation || msg.message?.extendedTextMessage?.text || ''
     const args = messageText.trim().split(' ').slice(1)
-    const extraMsg = args.join(' ')
+    const extraMsg = args.join(' ') 
 
     let finalMsg = '*📢 ATENCIÓN 📢* \n'
     finalMsg += '\n'
@@ -57,6 +50,7 @@ const handler = async (msg, { conn, isOwner }) => {
 
 handler.tags = ['group']
 handler.help = ['invocar < mensaje opcional >']
+handler.admin = true
 handler.command = ['tagall', 'invocar', 'todos']
 handler.group = true
 
