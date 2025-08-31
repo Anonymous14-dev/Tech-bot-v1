@@ -97,15 +97,15 @@ yukiJadiBot(yukiJBOptions)
 global.db.data.users[m.sender].Subs = new Date * 1
 } 
 
-handler.help = ['qr', 'code']
-handler.tags = ['jadibot']
-handler.command = ['qr', 'code', 'serqr', 'sercode']
+handler.help = ['serqr', 'sercode']
+handler.tags = ['other']
+handler.command = ['serqr', 'sercode']
 export default handler 
 
 export async function yukiJadiBot(options) {
 let { pathYukiJadiBot, m, conn, args, usedPrefix, command, phoneNumber } = options
-if (command === 'sercode', 'code') {
-command = 'serqr', 'qr'; 
+if (command === 'sercode') {
+command = 'serqr'; 
 args.unshift('code')}
 const mcode = args[0] && /(--code|code)/.test(args[0].trim()) ? true : args[1] && /(--code|code)/.test(args[1].trim()) ? true : false
 let txtCode, codeBot, txtQR
@@ -139,7 +139,7 @@ printQRInTerminal: false,
 auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({level: 'silent'})) },
 msgRetry,
 msgRetryCache,
-browser: mcode ? ['macOS', 'Chrome', '110.0.5585.95'] : ['Tech [ Beta ]','Chrome','2.0.0'],
+browser: mcode ? ['Ubuntu', 'Chrome', '110.0.5585.95'] : ['Michi Wa [ Prem Bot ]','Chrome','2.0.0'],
 version: version,
 generateHighQualityLinkPreview: true
 };
@@ -237,7 +237,7 @@ let userName, userJid
 userName = sock.authState.creds.me.name || 'Anónimo'
 userJid = sock.authState.creds.me.jid || `${path.basename(pathYukiJadiBot)}@s.whatsapp.net`
 console.log(chalk.bold.cyanBright(`\n❒⸺⸺⸺⸺【• SUB-BOT •】⸺⸺⸺⸺❒\n│\n│ 🟢 ${userName} (+${path.basename(pathYukiJadiBot)}) conectado exitosamente.\n│\n❒⸺⸺⸺【• CONECTADO •】⸺⸺⸺❒`))
-await conn.sendMessage(m.chat, { text: `✅ *𝙳𝚎𝚟𝚒𝚌𝚎 𝙻𝚘𝚐𝚐𝚎𝚍𝙸𝚗.*` }, { quoted: m })
+await conn.sendMessage(m.chat, { text: `🟢 Sub-bot ${userName} (+${path.basename(pathYukiJadiBot)}) conectado exitosamente.` }, { quoted: m })
 sock.isInit = true
 global.conns.push(sock)
 await joinChannels(sock)
