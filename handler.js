@@ -344,7 +344,7 @@ let args = []
 
 if ((usedPrefix = (match[0] || '')[0])) {
     noPrefix = m.text.replace(usedPrefix, '')
-    ;[command, ...args] = noPrefix.trim().split` `.filter(v => v)
+    ;[command, ...args] = noPrefix.trim().split(/\s+/).filter(v => v)
 
     // cooldown y escritura simulada
     let userData = global.db.data.users[m.sender] || {}
