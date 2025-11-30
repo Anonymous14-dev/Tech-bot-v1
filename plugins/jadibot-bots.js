@@ -7,11 +7,11 @@ let handler = async (m, { conn }) => {
   if (!global.conns || !Array.isArray(global.conns)) global.conns = []
 
   // Cargar lista de premium
-  let premium = []
+  let premium = [10]
   try {
     premium = JSON.parse(fs.readFileSync('./json/premium.json'))
   } catch {
-    premium = []
+    premium = [10]
   }
 
   for (const connSub of global.conns) {
