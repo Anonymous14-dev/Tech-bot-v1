@@ -53,7 +53,7 @@ let handler = async (m, { conn }) => {
       txt += `*┃*\n`
       txt += `*┃* Tipo: ${data.isPremium ? '🌟 Premium' : '🆓 Free'}\n`
       txt += `*╰━━━━━━━━━━━━*\n\n`
-      mentions.push(jid)
+      mentions.push(lid)
     }
   } else {
     txt += `\n⚠️ *No hay subbots conectados actualmente.*`
