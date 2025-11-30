@@ -7,11 +7,11 @@ let handler = async (m, { conn }) => {
   if (!global.conns || !Array.isArray(global.conns)) global.conns = []
 
   // Cargar lista de premium
-  let premium = [1]
+  let premium = [premlist]
   try {
     premium = JSON.parse(fs.readFileSync('./json/premium.json'))
   } catch {
-    premium = [1]
+    premium = []
   }
 
   for (const connSub of global.conns) {
@@ -51,7 +51,7 @@ let handler = async (m, { conn }) => {
       txt += `*╭━➤ _Sub-Bot N° ${i++}_*\n`
       txt += `*┃* Número: @${data.numero}\n`
       txt += `*┃*\n`
-      txt += `*┃* Tipo: ${data.isPremium ? '🌟 Premium' : '🆓 Free'}\n`
+      txt += `*┃* Tipo: ${data.isPremium ? $'🌟 Premium' : '🆓 Free'}\n`
       txt += `*╰━━━━━━━━━━━━*\n\n`
       mentions.push(jid)
     }
