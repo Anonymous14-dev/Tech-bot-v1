@@ -1,71 +1,135 @@
-import fetch from "node-fetch";
-import yts from "yt-search";
+import yts from "yt-search"
+import fetch from "node-fetch"
 
-const ytIdRegex = /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+const handler = async (m, { conn, text, command }) => {
+  if (!text) return m.reply(`☯️ *Shadow-BOT-MD — Protocolo de Invocación*
 
-const toSansSerifPlain = (text = "") =>
-  text.split("").map((char) => {
-    const map = {
-      a: "𝖺", b: "𝖻", c: "𝖼", d: "𝖽", e: "𝖾", f: "𝖿", g: "𝗀", h: "𝗁", i: "𝗂",
-      j: "𝗃", k: "𝗄", l: "𝗅", m: "𝗆", n: "𝗇", o: "𝗈", p: "𝗉", q: "𝗊", r: "𝗋",
-      s: "𝗌", t: "𝗍", u: "𝗎", v: "𝗏", w: "𝗐", x: "𝗑", y: "𝗒", z: "𝗓",
-      A: "𝖠", B: "𝖡", C: "𝖢", D: "𝖣", E: "𝖤", F: "𝖥", G: "𝖦", H: "𝖧", I: "𝖨",
-      J: "𝖩", K: "𝖪", L: "𝖫", M: "𝖬", N: "𝖭", O: "𝖮", P: "𝖯", Q: "𝖰", R: "𝖱",
-      S: "𝖲", T: "𝖳", U: "𝖴", V: "𝖵", W: "𝖶", X: "𝖷", Y: "𝖸", Z: "𝖹",
-      0: "𝟢", 1: "𝟣", 2: "𝟤", 3: "𝟥", 4: "𝟦", 5: "𝟧", 6: "𝟨", 7: "𝟩", 8: "𝟪", 9: "𝟫"
-    };
-    return map[char] || char;
-  }).join("");
+Pronuncia el nombre del video o entrega el vínculo de YouTube...
+y la sombra ejecutará tu voluntad.`)
 
-const formatViews = (views) => {
-  if (!views) return "Desconocido";
-  if (views >= 1_000_000_000) return `${(views / 1_000_000_000).toFixed(1)}B`;
-  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M`;
-  if (views >= 1_000) return `${(views / 1_000).toFixed(1)}k`;
-  return views.toString();
-};
+  await m.react("🌌")
 
-const handler = async (m, { conn, text }) => {
-  if (!text) return m.reply(toSansSerifPlain("✦ Ingresa el nombre o link de un video."));
-
-  // Reacción mientras busca el video
-  await conn.sendMessage(m.chat, {
-    react: { text: "🕐", key: m.key }
-  });
-
-  let video;
   try {
-    const ytId = ytIdRegex.exec(text);
-    const search = ytId ? await yts({ videoId: ytId[1] }) : await yts(text);
-    video = ytId ? search.video : search.all[0];
-  } catch {
-    return m.reply(toSansSerifPlain("✦ Error al buscar el video."));
+    let url = text
+    let title = "Desconocido"
+    let authorName = "Desconocido"
+    let durationTimestamp = "Desconocida"
+    let views = "Desconocidas"
+    let thumbnail = ""
+
+    if (!text.startsWith("https://")) {
+      const res = await yts(text)
+      if (!res || !res.videos || res.videos.length === 0) {
+        return m.reply(`☯️ *Shadow-BOT-MD — Protocolo de Invocación*
+
+Nada fue hallado en las tinieblas...
+Intenta con un nombre más preciso.`)
+      }
+
+      const video = res.videos[0]
+      title = video.title || title
+      authorName = video.author?.name || authorName
+      durationTimestamp = video.timestamp || durationTimestamp
+      views = video.views || views
+      url = video.url || url
+      thumbnail = video.thumbnail || ""
+    }
+
+    const isAudio = ["play", "playaudio", "ytmp3"].includes(command)
+    const isVideo = ["play2", "playvid", "ytv", "ytmp4"].includes(command)
+
+    if (isAudio) {
+      await downloadMedia(conn, m, url, title, thumbnail, "mp3")
+    } else if (isVideo) {
+      await downloadMedia(conn, m, url, title, thumbnail, "mp4")
+    } else {
+      await m.reply(`☯️ *Shadow-BOT-MD — Análisis de Objetivo*
+
+『🎭』 Título: ${title}
+✦ Canal: ${authorName}
+✦ Duración: ${durationTimestamp}
+✦ Vistas: ${views}
+
+Comandos disponibles:
+• .ytmp3 ${url}
+• .ytmp4 ${url}`)
+    }
+
+  } catch (error) {
+    console.error("Error general:", error)
+    await m.reply(`☯️ *Shadow-BOT-MD — Falla en la ejecución*
+
+Algo perturbó el flujo de las sombras...
+Error: ${error.message}`)
+    await m.react("⚠️")
   }
+}
 
-  if (!video) return m.reply(toSansSerifPlain("✦ No se encontró el video."));
+const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
+  try {
+    const cleanTitle = cleanName(title) + (type === "mp3" ? ".mp3" : ".mp4")
 
-  const { title, timestamp, views, url, thumbnail, author, ago } = video;
+    const msg = `☯️ *Shadow-BOT-MD — Descarga en curso*
 
-  const caption = [
-    "✧─── ･ ｡ﾟ★: *.✦ .* :★. ───✧",
-    "⧼ ᰔᩚ ⧽  M U S I C  -  Y O U T U B E",
-    "",
-    `» ✧ « *${title}*`,
-    `> ➩ Canal › *${author.name}*`,
-    `> ➩ Duración › *${timestamp}*`,
-    `> ➩ Vistas › *${formatViews(views)}*`,
-    `> ➩ Publicado › *${ago || "desconocido"}*`,
-    `> ➩ Link › *${url}*`,
-    "",
-    "> ✰ Responde con *Audio* o *Video* para descargar ✧"
-  ].join("\n");
+『🎭』 Título: ${title}
+Invocando tu ${type === "mp3" ? "audio espectral" : "video oculto"}...`
 
-  await conn.sendMessage(m.chat, {
-    image: { url: thumbnail },
-    caption
-  }, { quoted: m });
-};
+    if (thumbnail) {
+      await conn.sendMessage(m.chat, { image: { url: thumbnail }, caption: msg }, { quoted: m })
+    } else {
+      await m.reply(msg)
+    }
 
-handler.command = ["pla"];
-handler.register = true;
-export default handler;
+    const apiUrl = `https://mayapi.ooguy.com/ytdl?url=${encodeURIComponent(url)}&type=${type}&apikey=may-de618680`
+    const response = await fetch(apiUrl)
+    const data = await response.json()
+
+    if (!data || !data.status || !data.result || !data.result.url) {
+      throw new Error("No se pudo obtener el archivo desde las sombras.")
+    }
+
+    if (type === "mp3") {
+      await conn.sendMessage(m.chat, {
+        audio: { url: data.result.url },
+        mimetype: "audio/mpeg",
+        fileName: cleanTitle
+      }, { quoted: m })
+    } else {
+      await conn.sendMessage(m.chat, {
+        video: { url: data.result.url },
+        mimetype: "video/mp4",
+        fileName: cleanTitle
+      }, { quoted: m })
+    }
+
+    const doneMsg = `☯️ *Shadow-BOT-MD — Transferencia completada*
+
+『🎭』 Título: ${data.result.title || title}
+✦ Tipo: ${type === "mp3" ? "Audio" : "Video"}
+✦ Estado: Descargado con precisión letal.
+
+Disfrútalo... como si fuera el último eco de tu misión.`
+
+    await m.reply(doneMsg)
+    await m.react("✅")
+
+  } catch (error) {
+    console.error("Error descargando:", error)
+    const errorMsg = `☯️ *Shadow-BOT-MD — Error en la operación*
+
+『🎭』 Título: ${title}
+Algo falló en la ejecución...
+${error.message}`
+
+    await m.reply(errorMsg)
+    await m.react("❌")
+  }
+}
+
+const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
+
+handler.command = handler.help = ["play", "playaudio", "ytmp3", "play2", "playvid", "ytv", "ytmp4", "yt"]
+handler.tags = ["descargas"]
+handler.register = true
+
+export default handler
