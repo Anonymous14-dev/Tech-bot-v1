@@ -23,7 +23,7 @@ Elige una de las opciones para descargar:
     {
       image: { url: videoInfo.thumbnail },
       caption: body,
-      footer: ` *tech bot ☘︎| ⚔️🥷`,
+      footer: `𝕭𝖑𝖆𝖈𝖐 𝕮𝖑𝖔𝖛𝖊𝖗 ☘︎| ⚔️🥷`,
       buttons: [
         { buttonId: `.ytmp3 ${videoInfo.url}`, buttonText: { displayText: '🎧 Audio' } },
         { buttonId: `.ytmp4 ${videoInfo.url}`, buttonText: { displayText: '📽️ Video' } },
