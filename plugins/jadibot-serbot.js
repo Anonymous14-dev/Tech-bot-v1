@@ -23,7 +23,7 @@ let rtx = `
 ┃ 🚀 Convierte tu número en un 
 ┃ *Sub-Bot Temporal* y controla el bot 
 ┃ 
-╰━━━━━━━━━━━━━━━━━━━━╯
+╰━━━━━━━━━━━━━━━━━━━
 
 📌 *Pasos para vincular:*
 ┌ 1️⃣  Abre WhatsApp y toca los *⋮ tres*
@@ -40,7 +40,7 @@ let rtx2 = `╭━━━━➤〔 🤖 *TECH-BOT* 🤖 〕
 ┃ 🚀 Convierte tu número en un 
 ┃ *Sub-Bot Temporal* y controla el bot 
 ┃ 
-╰━━━━━━━━━━━━━━━━━━━━━━╯
+╰━━━━━━━━━━━━━━━━━━━━━
 
 📌 *Pasos para vincular:*
 ┌ 1️⃣  Abre WhatsApp y toca los *⋮ tres*
