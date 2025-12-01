@@ -6,7 +6,7 @@ if (!fs.existsSync(file)) fs.writeFileSync(file, "{}")
 let db = JSON.parse(fs.readFileSync(file))
 
 // Número del bot primario (sin @s.whatsapp.net)
-const PRIMARY_NUMBER = "5491164239825"
+const PRIMARY_NUMBER = "5492644893953"
 
 let handler = async (m, { args }) => {
   if (!m.isGroup) return m.reply("📌 Este comando solo funciona en grupos.")
