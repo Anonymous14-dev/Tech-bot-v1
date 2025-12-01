@@ -35,7 +35,7 @@ var handler = async (m, { conn, args, usedPrefix, command }) => {
             throw m.reply("*[ ❌ ] La sombra ha fallado. No se pudo completar la invocación.*");
         }
     } catch (error1) {
-        conn.reply(m.chat, `*[ 🩸 ] Error detectado: ${error1}*\n*Las sombras no perdonan los errores...*`, m);
+        conn.reply(m.chat, `*[ 🥲 ] Error detectado: ${error1}*\n*Las sombras no perdonan los errores...*`, m);
     }
 };
 
