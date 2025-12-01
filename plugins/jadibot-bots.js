@@ -51,7 +51,7 @@ let handler = async (m, { conn }) => {
       txt += `*╭━➤ _Sub-Bot N° ${i++}_*\n`
       txt += `*┃* Número: @${data.numero}\n`
       txt += `*┃*\n`
-      txt += `*┃* Tipo: ${data.isPremium ? 🌟 Premium' : '🆓 Free'}\n`
+      txt += `*┃* Tipo: ${data.isPremium ? '🌟 Premium' : '🆓 Free'}\n`
       txt += `*╰━━━━━━━━━━━━*\n\n`
       mentions.push(jid)
     }
