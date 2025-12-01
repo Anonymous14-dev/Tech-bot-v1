@@ -64,7 +64,7 @@ let time = global.db.data.users[m.sender].Subs + 120000
 
 const subBots = [...new Set([...global.conns.filter((conn) => conn.user && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED).map((conn) => conn)])]
 const subBotsCount = subBots.length
-if (subBotsCount === 30) {
+if (subBotsCount === 50) {
 return m.reply(`No se han encontrado espacios para *Sub-Bots* disponibles.`)
 }
 
@@ -99,7 +99,7 @@ global.db.data.users[m.sender].Subs = new Date * 1
 
 handler.help = ['qr', 'code']
 handler.tags = ['other']
-handler.command = ['code', 'qr']
+handler.command = ['code 54', 'qr']
 export default handler 
 
 export async function yukiJadiBot(options) {
