@@ -79,7 +79,7 @@ Invocando tu ${type === "mp3" ? "audio espectral" : "video oculto"}...`
       await m.reply(msg)
     }
 
-    const apiUrl = `https://api.adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&type=${type}&apikey=Demonkeytechbot`
+    const apiUrl = `https://api-adonix.ultraplus.click/download/ytaudio?apikey=DemonKeytechbot${encodeURIComponent(url)}&type=${type}&`
     const response = await fetch(apiUrl)
     const data = await response.json()
 
