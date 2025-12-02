@@ -79,12 +79,20 @@ Invocando tu ${type === "mp3" ? "audio espectral" : "video oculto"}...`
       await m.reply(msg)
     }
 
-    const apiUrl = `https://api-adonix.ultraplus.click/download/ytaudio?apikey=DemonKeytechbot$url=${encodeURIComponent(args[0])}&type=$`
+    // uwu Nueva API para audio att: shadow uwu
+    let apiUrl
+    if (type === "mp3") {
+      apiUrl = `https://api-adonix.ultraplus.click/download/ytaudio?apikey=DemonKeytechbot&url=${encodeURIComponent(url)}`
+    } else {
+      // si quieres también video, aquí puedes poner otra API de video
+      throw new Error("Solo está configurada la API para audio (mp3).")
+    }
+
     const response = await fetch(apiUrl)
     const data = await response.json()
 
     if (!data || !data.status || !data.result || !data.result.url) {
-      throw new Error("No se pudo obtener el archivo hay un error en la api.")
+      throw new Error("No se pudo obtener el archivo, hay un error en la API.")
     }
 
     if (type === "mp3") {
@@ -93,18 +101,12 @@ Invocando tu ${type === "mp3" ? "audio espectral" : "video oculto"}...`
         mimetype: "audio/mpeg",
         fileName: cleanTitle
       }, { quoted: m })
-    } else {
-      await conn.sendMessage(m.chat, {
-        video: { url: data.result.url },
-        mimetype: "video/mp4",
-        fileName: cleanTitle
-      }, { quoted: m })
     }
 
     const doneMsg = `☯️ *Tech bot v1— Transferencia completada*
 
 『🎭』 Título: ${data.result.title || title}
-✦ Tipo: ${type === "mp3" ? "Audio" : "Video"}
+✦ Tipo: Audio
 ✦ Estado: Descargado con precisión letal.
 
 Disfrútalo... como si fuera el último día en la tierra.`
@@ -127,7 +129,7 @@ ${error.message}`
 
 const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
 
-handler.command = handler.help = ["play", "playaudio", "ytmp3", "play2", "playvid", "ytv", "ytmp4", "yt"]
+handler.command = handler.help = ["play", "playaudio", "ytmp3"]
 handler.tags = ["descargas"]
 handler.register = true
 
