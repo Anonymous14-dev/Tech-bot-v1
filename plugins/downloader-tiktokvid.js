@@ -1,4 +1,4 @@
-mport axios from 'axios'
+import axios from 'axios'
 import fs from 'fs'
 const premiumFile = './json/premium.json'
 
