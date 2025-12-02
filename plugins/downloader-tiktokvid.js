@@ -1,3 +1,4 @@
+import axios from 'axios'
 import fs from 'fs'
 const premiumFile = './json/premium.json'
 
@@ -21,22 +22,32 @@ const handler = async (m, { conn, args, usedPrefix, text, command }) => {
   }
   if (!text) return m.reply(`⏳ Ingresa una búsqueda para TikTok\n> *Ejemplo:* ${usedPrefix + command} haikyuu edit`)
 
-  let res = await fetch(`https://api-adonix.ultraplus.click/download/tiktok?apikey=DemonKeytechbot&query=${encodeURIComponent(text)}`)
-  let json = await res.json()
+  try {
+    // Nueva API con parámetro de búsqueda
+    let res = await fetch(`https://api-adonix.ultraplus.click/download/tiktok?apikey=DemonKeytechbot&q=${encodeURIComponent(text)}`)
+    let json = await res.json()
+    
+    // Verificación de la estructura de respuesta
+    if (!json.status || !json.data || !json.data.url) {
+      return m.reply('❌ No se encontró ningún video o la API no devolvió datos válidos.')
+    }
 
-  if (!json.status || !json.data || !json.data.length) return m.reply('❌ No se encontró ningún video.')
+    let vid = json.data
+    
+    let caption = `📎 \`${vid.title || 'Sin título'}\`\n\n` +
+                  `👤 *Autor:* » ${vid.author || 'Desconocido'}\n` +
+                  `👀 *Vistas:* » ${vid.views ? vid.views.toLocaleString() : 'N/A'}\n` +
+                  `📎 *Link:* » ${vid.url}`
 
-  let vid = json.data[0]
-
-  let caption = `📎 \`${vid.title}\`\n\n` +
-                `👤 *Autor:* » ${vid.author}\n` +
-                `👀 *Vistas:* » ${vid.views.toLocaleString()}\n` +
-                `📎 *Link:* » ${vid.url}`
-
-  await conn.sendMessage(m.chat, {
-    video: { url: vid.url },
-    caption
-  }, { quoted: m })
+    await conn.sendMessage(m.chat, {
+      video: { url: vid.url },
+      caption
+    }, { quoted: m })
+    
+  } catch (error) {
+    console.error(error)
+    return m.reply('❌ Error al procesar la solicitud. Intenta más tarde.')
+  }
 }
 
 handler.help = ['tiktokvid']
