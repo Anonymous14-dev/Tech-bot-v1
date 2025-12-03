@@ -1,13 +1,11 @@
 var handler = async (m, { conn }) => {
-  
+
   if (m.text === '.creador') {
     const contacto = `
 🤖 *¿QUIERES CONTACTAR A MI CREADOR?* 🤖
 
-👤 *nombre* *Ghostdev*
-📞 *Número:*#1 5491151545427
-👤 *nombre* *WILKER OFC*
-📞 *Numero:*#2 5492644893953
+👤 *nombre*  *WILKER OFC*
+📞 *Numero:* +5492644893953
 🔔 *Lenguajes* Node.js Python.py
 
 💫 *NOTA IMPORTANTE:*
