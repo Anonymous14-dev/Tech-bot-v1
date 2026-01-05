@@ -1,113 +1,121 @@
-import fetch from 'node-fetch'
-import axios from 'axios'
-import fs from 'fs'
-import path from 'path'
+import yts from "yt-search"
+import fetch from "node-fetch"
 
-let handler = async (m, { conn, text, usedPrefix, command, args }) => {
+const handler = async (m, { conn, text, command }) => {
+  if (!text) return m.reply(`👻 *Tech bot v1 invocando*
+
+🤍 Pronuncia el nombre del video o entrega el enlace de YouTube.`)
+
+  await m.react("⏰")
+
   try {
-    if (!text) {
-      return conn.reply(m.chat, `❇️ *Por favor, ingresa la URL del vídeo de YouTube.*`, m)
-    }
+    let url = text
+    let title = "Desconocido"
+    let authorName = "Desconocido"
+    let durationTimestamp = "Desconocida"
+    let views = "Desconocidas"
+    let thumbnail = ""
 
-    if (!/^(?:https?:\/\/)?(?:www\.|m\.|music\.)?youtu\.?be(?:\.com)?\/?.*(?:watch|embed)?(?:.*v=|v\/|\/)([\w\-_]+)\&?/.test(args[0])) {
-      return m.reply(`*⚠️ Enlace inválido, por favor coloca un enlace válido de YouTube.*`)
-    }
+    if (!text.startsWith("https://")) {
+      const res = await yts(text)
+      if (!res?.videos?.length) {
+        return m.reply(`👻 *Tech bot v1 buscando*
 
-    m.react('⏳')
-
-    const json = await ytdl(args[0])
-    const size = await getSize(json.url)
-    const sizeStr = size ? await formatSize(size) : 'Desconocido'
-
-    // Leer el nombre del subbot como el menú
-    const botActual = conn.user?.jid?.split('@')[0].replace(/\D/g, '')
-    const configPath = path.join('./JadiBots', botActual, 'config.json')
-
-    let nombreBot = global.namebot || '✧ ʏᴜʀᴜ ʏᴜʀɪ ✧'
-    if (fs.existsSync(configPath)) {
-      try {
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
-        if (config.name) nombreBot = config.name
-      } catch (err) {
-        console.log('⚠️ No se pudo leer config del subbot:', err)
+🖤 Nada fue encontrado…`)
       }
+
+      const video = res.videos[0]
+      title = video.title
+      authorName = video.author?.name
+      durationTimestamp = video.timestamp
+      views = video.views
+      url = video.url
+      thumbnail = video.thumbnail
     }
 
-    const cap = `*${json.title}*\n*📎 URL:* ${args[0]}\n*📂 Peso:* ${sizeStr}\n\n> Send by: ${nombreBot}`
+    // Solo procesar comandos de video
+    await downloadVideo(conn, m, url, title, thumbnail)
 
-    conn.sendFile(m.chat, await (await fetch(json.url)).buffer(), `${json.title}.mp4`, cap, m)
-    m.react('✅')
-  } catch (e) {
-    console.error(e)
-    m.reply(`❌ Ocurrió un error:\n${e.message}`)
-  }
-}
-
-handler.help = ['ytmp4doc']
-handler.command = ['playvidoc', 'ytmp4doc']
-handler.tags = ['downloader']
-handler.register = true
-export default handler
-
-// Funciones auxiliares
-
-async function ytdl(url) {
-  const headers = {
-    "accept": "*/*",
-    "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-    "sec-ch-ua": "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\"",
-    "sec-ch-ua-mobile": "?1",
-    "sec-ch-ua-platform": "\"Android\"",
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "cross-site",
-    "Referer": "https://id.ytmp3.mobi/",
-    "Referrer-Policy": "strict-origin-when-cross-origin"
-  }
-
-  const initial = await fetch(`https://d.ymcdn.org/api/v1/init?p=y&23=1llum1n471&_=${Math.random()}`, { headers })
-  const init = await initial.json()
-  const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/|.*embed\/))([^&?/]+)/)?.[1]
-  const convertURL = init.convertURL + `&v=${id}&f=mp4&_=${Math.random()}`
-
-  const converts = await fetch(convertURL, { headers })
-  const convert = await converts.json()
-
-  let info = {}
-  for (let i = 0; i < 3; i++) {
-    const progressResponse = await fetch(convert.progressURL, { headers })
-    info = await progressResponse.json()
-    if (info.progress === 3) break
-  }
-
-  return {
-    url: convert.downloadURL,
-    title: info.title || 'video'
-  }
-}
-
-async function formatSize(bytes) {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let i = 0
-
-  if (!bytes || isNaN(bytes)) return 'Desconocido'
-
-  while (bytes >= 1024 && i < units.length - 1) {
-    bytes /= 1024
-    i++
-  }
-
-  return `${bytes.toFixed(2)} ${units[i]}`
-}
-
-async function getSize(url) {
-  try {
-    const response = await axios.head(url)
-    const contentLength = response.headers['content-length']
-    if (!contentLength) return null
-    return parseInt(contentLength, 10)
   } catch (error) {
-    console.error("Error al obtener el tamaño:", error.message)
-    return null
+    await m.reply(`👻 *Tech bot v1 — Error en la operación*
+
+❌ ${error.message}`)
+    await m.react("⚠️")
   }
 }
+
+const downloadVideo = async (conn, m, url, title, thumbnail) => {
+  try {
+    const cleanTitle = cleanName(title) + ".mp4"
+
+    const msg = `👻 *Tech bot v1 — Descarga en curso*
+
+🤍 *Título:* ${title}
+🖤 Preparando tu video festivo...`
+
+    let sent
+    if (thumbnail) {
+      sent = await conn.sendMessage(
+        m.chat,
+        { image: { url: thumbnail }, caption: msg },
+        { quoted: m }
+      )
+    } else {
+      sent = await conn.sendMessage(
+        m.chat,
+        { text: msg },
+        { quoted: m }
+      )
+    }
+
+    const apiUrl = `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=WilkerKeydukz9l6871`
+
+    const response = await fetch(apiUrl)
+    const data = await response.json()
+
+    if (!data?.status || !data?.data?.url) {
+      throw new Error("La API no devolvió un archivo válido.")
+    }
+
+    const fileUrl = data.data.url
+    const fileTitle = data.data.title || title
+
+    await conn.sendMessage(
+      m.chat,
+      {
+        video: { url: fileUrl },
+        mimetype: "video/mp4",
+        fileName: cleanTitle
+      },
+      { quoted: m }
+    )
+
+    await conn.sendMessage(
+      m.chat,
+      {
+        text: `👻 *Tech bot v1 — Operación completada*
+
+🤍 *Título:* ${fileTitle}
+🖤 Entregado con magia navideña.`,
+        edit: sent.key
+      }
+    )
+
+    await m.react("✅")
+
+  } catch (error) {
+    await m.reply(`🙃 Tech bot v1 — Falla en la entrega*
+
+❌ ${error.message}`)
+    await m.react("❌")
+  }
+}
+
+const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
+
+// Solo comandos de video
+handler.command = handler.help = ["play2", "playvid", "ytv", "ytmp4"]
+handler.tags = ["descargas"]
+handler.register = false
+
+export default handler
