@@ -1,228 +1,319 @@
-import yts from "yt-search"
-import fetch from "node-fetch"
-import fs from "fs"
-import path from "path"
+import yts from 'yt-search'
 
-const handler = async (m, { conn, text, command }) => {
-  if (!text) return m.reply(`👻 *Michi wabot invocando*
+const MAX_SECONDS = 90 * 60
+const HTTP_TIMEOUT_MS = 90 * 1000
 
-🤍 Pronuncia el nombre del video o entrega el enlace de YouTube.`)
+// Configuración de la API
+const API_BASE_URL = 'https://api-adonix.ultraplus.click'
+const API_ENDPOINT = '/download/ytaudio'
 
-  await m.react("⏰")
+function parseDurationToSeconds(d) {
+  if (d == null) return null
+  if (typeof d === 'number' && Number.isFinite(d)) return Math.max(0, Math.floor(d))
+  const s = String(d).trim()
+  if (!s) return null
+  if (/^\d+$/.test(s)) return Math.max(0, parseInt(s, 10))
+  const parts = s.split(':').map((x) => x.trim()).filter(Boolean)
+  if (!parts.length || parts.some((p) => !/^\d+$/.test(p))) return null
+  let sec = 0
+  for (const p of parts) sec = sec * 60 + parseInt(p, 10)
+  return Number.isFinite(sec) ? sec : null
+}
 
+function formatErr(err, maxLen = 1500) {
+  const e = err ?? 'Error desconocido'
+  let msg = ''
+
+  if (e instanceof Error) msg = e.stack || `${e.name}: ${e.message}`
+  else if (typeof e === 'string') msg = e
+  else {
+    try {
+      msg = JSON.stringify(e, null, 2)
+    } catch {
+      msg = String(e)
+    }
+  }
+
+  msg = String(msg || 'Error desconocido').trim()
+  if (msg.length > maxLen) msg = msg.slice(0, maxLen) + '\n... (recortado)'
+  return msg
+}
+
+async function fetchJson(url, timeoutMs = HTTP_TIMEOUT_MS) {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
-    let url = text
-    let title = "Desconocido"
-    let authorName = "Desconocido"
-    let durationTimestamp = "Desconocida"
-    let views = "Desconocidas"
-    let thumbnail = ""
-
-    if (!text.startsWith("https://")) {
-      const res = await yts(text)
-      if (!res?.videos?.length) {
-        return m.reply(`👻 *Michi wabot buscando*
-
-🖤 Nada fue encontrado…`)
+    const res = await fetch(url, {
+      method: 'GET',
+      signal: ctrl.signal,
+      headers: { 
+        accept: 'application/json', 
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
-
-      const video = res.videos[0]
-      title = video.title
-      authorName = video.author?.name
-      durationTimestamp = video.timestamp
-      views = video.views
-      url = video.url
-      thumbnail = video.thumbnail
+    })
+    
+    const text = await res.text().catch(() => '')
+    let data = null
+    
+    try {
+      data = text ? JSON.parse(text) : null
+    } catch {
+      throw new Error(`Respuesta no es JSON válido: ${text.slice(0, 200)}`)
     }
-
-    const isAudio = ["play", "playaudio", "ytmp3"].includes(command)
-    const isVideo = ["play2", "playvid", "ytv", "ytmp4"].includes(command)
-
-    if (isAudio) {
-      await downloadMedia(conn, m, url, title, thumbnail, "mp3")
-    } else if (isVideo) {
-      await downloadMedia(conn, m, url, title, thumbnail, "mp4")
-    } else {
-      await m.reply(`👻 *Michi wabot — Análisis navideño*
-
-🖤 *Título:* ${title}
-🔔 *Canal:* ${authorName}
-🎬 *Duración:* ${durationTimestamp}
-👁️ *Vistas:* ${views}
-
-Comandos disponibles:
-• *.ytmp3 ${url}*
-• *.ytmp4 ${url}*`)
+    
+    if (!res.ok) {
+      const msg = data?.message || data?.error || data?.info || text || `HTTP ${res.status}`
+      throw new Error(`HTTP ${res.status}: ${String(msg).slice(0, 400)}`)
     }
-
-  } catch (error) {
-    await m.reply(`👻 *Michi wabot — Error en la operación*
-
-❌ ${error.message}`)
-    await m.react("⚠️")
+    
+    if (data == null) throw new Error('Respuesta JSON vacía')
+    return data
+  } finally {
+    clearTimeout(t)
   }
 }
 
-const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
-  let filePath = null
+async function fetchBuffer(url, timeoutMs = HTTP_TIMEOUT_MS) {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    const res = await fetch(url, { 
+      signal: ctrl.signal, 
+      headers: { 
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      } 
+    })
+    if (!res.ok) throw new Error(`No se pudo descargar el audio (HTTP ${res.status})`)
+    const ab = await res.arrayBuffer()
+    return Buffer.from(ab)
+  } finally {
+    clearTimeout(t)
+  }
+}
+
+function guessMimeFromUrl(fileUrl = '') {
+  let ext = ''
+  try {
+    ext = new URL(fileUrl).pathname.split('.').pop() || ''
+  } catch {
+    ext = String(fileUrl).split('.').pop() || ''
+  }
+  ext = '.' + String(ext).toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (ext === '.m4a') return 'audio/mp4'
+  if (ext === '.opus') return 'audio/ogg; codecs=opus'
+  if (ext === '.webm') return 'audio/webm'
+  return 'audio/mpeg'
+}
+
+async function fetchAudioFromAPI(ytUrl, apiKey) {
+  const apiUrl = `${API_BASE_URL}${API_ENDPOINT}?apikey=${encodeURIComponent(apiKey)}&url=${encodeURIComponent(ytUrl)}`
+  
+  console.log(`[API] Solicitando: ${apiUrl}`)
+  
+  const response = await fetchJson(apiUrl, HTTP_TIMEOUT_MS)
+  
+  // Verificar diferentes formatos de respuesta de la API
+  if (!response || typeof response !== 'object') {
+    throw new Error('Respuesta de la API inválida')
+  }
+  
+  // Verificar si hay error en la respuesta
+  if (response.error) {
+    throw new Error(`API Error: ${response.error}`)
+  }
+  
+  if (response.message) {
+    throw new Error(`API Message: ${response.message}`)
+  }
+  
+  // Buscar URL de audio en diferentes posibles estructuras
+  let audioUrl = null
+  let title = 'Audio YouTube'
+  
+  // Estructura 1: response.data.url
+  if (response.data?.url) {
+    audioUrl = response.data.url
+    title = response.data.title || title
+  }
+  // Estructura 2: response.url
+  else if (response.url) {
+    audioUrl = response.url
+    title = response.title || title
+  }
+  // Estructura 3: response.links o response.download
+  else if (response.links?.[0]?.url) {
+    audioUrl = response.links[0].url
+    title = response.links[0].title || title
+  }
+  else if (response.download) {
+    audioUrl = response.download
+    title = response.title || title
+  }
+  
+  if (!audioUrl) {
+    console.log('[API] Estructura de respuesta:', JSON.stringify(response, null, 2))
+    throw new Error('No se encontró URL de audio en la respuesta de la API')
+  }
+  
+  // Asegurar que la URL sea válida
+  if (!audioUrl.startsWith('http')) {
+    audioUrl = `https:${audioUrl}`
+  }
+  
+  return { url: audioUrl, title }
+}
+
+let handler = async (m, { conn, text, usedPrefix, command }) => {
+  const chatId = m?.chat || m?.key?.remoteJid
+  if (!chatId) return
+
+  if (!text) {
+    return conn.sendMessage(
+      chatId,
+      { text: `「✦」Escribe el nombre o link del video.\n> ✐ Ejemplo » *${usedPrefix + command} lovely*` },
+      { quoted: m }
+    )
+  }
+
+  await conn.sendMessage(chatId, { react: { text: '🕒', key: m.key } }).catch(() => {})
+
+  let ytUrl = text.trim()
+  let ytInfo = null
+
+  try {
+    if (!/youtu\.be|youtube\.com/i.test(ytUrl)) {
+      // Búsqueda por texto
+      const search = await yts({ query: ytUrl, pages: 1 })
+      const first = search?.videos?.[0]
+      if (!first) {
+        await conn.sendMessage(chatId, { text: '「✦」No se encontraron resultados.' }, { quoted: m })
+        return
+      }
+      ytInfo = first
+      ytUrl = first.url
+    } else {
+      // Búsqueda por URL
+      const search = await yts({ query: ytUrl, pages: 1 })
+      if (search?.videos?.length) ytInfo = search.videos[0]
+    }
+  } catch (e) {
+    await conn.sendMessage(
+      chatId,
+      { text: `「✦」Error buscando en YouTube.\n\n> 🧩 Error:\n\`\`\`\n${formatErr(e)}\n\`\`\`` },
+      { quoted: m }
+    )
+    return
+  }
+
+  // Verificar duración
+  const durSec =
+    parseDurationToSeconds(ytInfo?.duration?.seconds) ??
+    parseDurationToSeconds(ytInfo?.seconds) ??
+    parseDurationToSeconds(ytInfo?.duration) ??
+    parseDurationToSeconds(ytInfo?.timestamp)
+
+  if (durSec && durSec > MAX_SECONDS) {
+    await conn.sendMessage(
+      chatId,
+      { text: `「✦」Audio muy largo.\n> Máx: ${Math.floor(MAX_SECONDS / 60)} min.` },
+      { quoted: m }
+    )
+    return
+  }
+
+  const title = ytInfo?.title || 'Audio'
+  const author = ytInfo?.author?.name || ytInfo?.author || 'Desconocido'
+  const duration = ytInfo?.timestamp || 'Desconocida'
+  const thumbnail = ytInfo?.thumbnail
+
+  const caption =
+    `「✦」Enviando *${title}*\n\n` +
+    `> ❀ Canal » *${author}*\n` +
+    `> ⴵ Duración » *${duration}*\n` +
+    `> 🜸 Link » ${ytUrl}`
+
+  try {
+    if (thumbnail) {
+      await conn.sendMessage(chatId, { 
+        image: { url: thumbnail }, 
+        caption 
+      }, { quoted: m })
+    } else {
+      await conn.sendMessage(chatId, { text: caption }, { quoted: m })
+    }
+  } catch {}
+
+  // Obtener API key
+  const apiKey = globalThis.apikey || 'WilkerKeydukz9l6871'
+  
+  if (!apiKey || apiKey === 'TU_API_KEY_AQUI') {
+    await conn.sendMessage(
+      chatId, 
+      { 
+        text: `「✦」API key no configurada.\n\n> Configura globalThis.apikey en tu archivo principal o usa:\n> \`globalThis.apikey = 'WilkerKeydukz9l6871'\`` 
+      }, 
+      { quoted: m }
+    )
+    return
+  }
+
+  let audioData = null
   
   try {
-    const cleanTitle = cleanName(title) + (type === "mp3" ? ".mp3" : ".mp4")
-    const tmpDir = "./tmp"
-    
-    // Crear directorio tmp si no existe
-    if (!fs.existsSync(tmpDir)) {
-      fs.mkdirSync(tmpDir, { recursive: true })
-    }
-    
-    filePath = path.join(tmpDir, cleanTitle)
-
-    const msg = `👻 *Michi wabot — Descarga en curso*
-
-🤍 *Título:* ${title}
-🖤 Preparando tu ${type === "mp3" ? "audio navideño" : "video festivo"}...`
-
-    let sent
-    if (thumbnail) {
-      sent = await conn.sendMessage(
-        m.chat,
-        { image: { url: thumbnail }, caption: msg },
-        { quoted: m }
-      )
-    } else {
-      sent = await conn.sendMessage(
-        m.chat,
-        { text: msg },
-        { quoted: m }
-      )
-    }
-
-    // Array de APIs con sus configuraciones
-    const apis = [
-      {
-        name: "GawrGura API",
-        url: `https://gawrgura-api.onrender.com/download/ytdl?url=${encodeURIComponent(url)}`,
-        extract: (data) => ({
-          url: type === "mp3" ? data.result.mp3 : data.result.mp4,
-          title: data.result.title
-        })
-      },
-      {
-        name: "Ootaizumi API",
-        url: `https://api.ootaizumi.web.id/downloader/youtube/play?query=${encodeURIComponent(url)}`,
-        extract: (data) => ({
-          url: data.result.download,
-          title: data.result.title
-        })
-      },
-      {
-        name: "Adonix API",
-        url: type === "mp3"
-          ? `https://api-adonix.ultraplus.click/download/ytaudio?url=${encodeURIComponent(url)}&apikey=WilkerKeydukz9l6871`
-          : `https://api-adonix.ultraplus.click/download/ytvideo?url=${encodeURIComponent(url)}&apikey=WilkerKeydukz9l6871`,
-        extract: (data) => ({
-          url: data.data.url,
-          title: data.data.title
-        })
-      }
-    ]
-
-    let fileUrl = null
-    let fileTitle = title
-    let usedApi = null
-
-    // Intentar con cada API hasta encontrar una que funcione
-    for (const api of apis) {
-      try {
-        const response = await fetch(api.url)
-        const data = await response.json()
-
-        if (data?.status && data.status === true) {
-          const extracted = api.extract(data)
-          if (extracted.url) {
-            fileUrl = extracted.url
-            fileTitle = extracted.title || title
-            usedApi = api.name
-            break
-          }
-        }
-      } catch (apiError) {
-        console.log(`Error con ${api.name}: ${apiError.message}`)
-        continue
-      }
-    }
-
-    if (!fileUrl) {
-      throw new Error("Ninguna API pudo procesar la solicitud. Intenta más tarde.")
-    }
-
-    // Descargar el archivo a tmp/
-    const fileResponse = await fetch(fileUrl)
-    if (!fileResponse.ok) {
-      throw new Error(`Error al descargar el archivo: ${fileResponse.statusText}`)
-    }
-
-    const buffer = await fileResponse.buffer()
-    fs.writeFileSync(filePath, buffer)
-
-    // Enviar el archivo desde tmp/
-    if (type === "mp3") {
-      await conn.sendMessage(
-        m.chat,
-        {
-          audio: fs.readFileSync(filePath),
-          mimetype: "audio/mpeg",
-          fileName: cleanTitle
-        },
-        { quoted: m }
-      )
-    } else {
-      await conn.sendMessage(
-        m.chat,
-        {
-          video: fs.readFileSync(filePath),
-          mimetype: "video/mp4",
-          fileName: cleanTitle
-        },
-        { quoted: m }
-      )
-    }
-
+    audioData = await fetchAudioFromAPI(ytUrl, apiKey)
+  } catch (e) {
     await conn.sendMessage(
-      m.chat,
-      {
-        text: `👻 *Michi wabot — Operación completada*
+      chatId,
+      { 
+        text: `「✦」Error obteniendo audio de la API.\n\n> 🧩 Error:\n\`\`\`\n${formatErr(e)}\n\`\`\`` 
+      },
+      { quoted: m }
+    )
+    return
+  }
 
-🤍 *Título:* ${fileTitle}
-🖤 Entregado con magia navideña.
-🔮 *API:* ${usedApi}`,
-        edit: sent.key
-      }
+  // Intentar descargar y enviar el audio
+  try {
+    const audioBuffer = await fetchBuffer(audioData.url, HTTP_TIMEOUT_MS)
+    const mime = guessMimeFromUrl(audioData.url)
+    
+    // Limpiar nombre del archivo
+    const cleanTitle = audioData.title
+      .replace(/[^\w\s.-]/g, '')
+      .replace(/\s+/g, '_')
+      .substring(0, 100)
+    
+    await conn.sendMessage(
+      chatId,
+      {
+        audio: audioBuffer,
+        mimetype: mime,
+        fileName: `${cleanTitle}.mp3`,
+        ptt: false
+      },
+      { quoted: m }
     )
 
-    await m.react("✅")
-
-  } catch (error) {
-    await m.reply(`👻 *Michi wabot — Falla en la entrega*
-
-❌ ${error.message}`)
-    await m.react("❌")
-  } finally {
-    // Limpiar archivo temporal después de enviar
-    if (filePath && fs.existsSync(filePath)) {
-      try {
-        fs.unlinkSync(filePath)
-      } catch (cleanError) {
-        console.log(`Error al limpiar archivo: ${cleanError.message}`)
-      }
-    }
+    await conn.sendMessage(chatId, { react: { text: '✔️', key: m.key } }).catch(() => {})
+    
+  } catch (e) {
+    // Si falla la descarga directa, enviar el link como alternativa
+    await conn.sendMessage(
+      chatId,
+      { 
+        text: `「✦」Error descargando el audio. Aquí tienes el link directo:\n\n${audioData.url}\n\n> 🧩 Error:\n\`\`\`\n${formatErr(e)}\n\`\`\`` 
+      },
+      { quoted: m }
+    )
   }
 }
 
-const cleanName = (name) => name.replace(/[^\w\s-_.]/gi, "").substring(0, 50)
+handler.help = ['play <texto|link>']
+handler.tags = ['multimedia']
+handler.command = ['play', 'ytplay', 'ytaudio', 'playaudio']
 
-handler.command = handler.help = ["play", "playaudio", "ytmp3", "play2", "playvid", "ytv", "ytmp4", "yt"]
-handler.tags = ["descargas"]
-handler.register = false
+// Configurar límites de uso
+handler.limit = true
+handler.premium = false
 
 export default handler
