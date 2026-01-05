@@ -1,7 +1,7 @@
 # ⭐ Tech bot v1
 
 <div align="center">
-  <img src="https://iili.io/FZQTsXR.jpg" alt="Tech-bot-v1 Logo" width="150"/>
+  <img src="https://files.catbox.moe/ojxw8v.jpg" alt="Tech-bot-v1 Logo" width="150"/>
   <br>
   <p>Un bot de WhatsApp ligero, confiable y fácil de usar, diseñado para la comunidad.</p>
 </div>
