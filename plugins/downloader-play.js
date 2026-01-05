@@ -1,8 +1,10 @@
 import yts from "yt-search"
 import fetch from "node-fetch"
+import fs from "fs"
+import path from "path"
 
 const handler = async (m, { conn, text, command }) => {
-  if (!text) return m.reply(`👻 *Tech bot v1 invocando*
+  if (!text) return m.reply(`👻 *Michi wabot invocando*
 
 🤍 Pronuncia el nombre del video o entrega el enlace de YouTube.`)
 
@@ -41,7 +43,7 @@ const handler = async (m, { conn, text, command }) => {
     } else if (isVideo) {
       await downloadMedia(conn, m, url, title, thumbnail, "mp4")
     } else {
-      await m.reply(`👻 *Tech bot v1 — Análisis navideño*
+      await m.reply(`👻 *Michi wabot — Análisis navideño*
 
 🖤 *Título:* ${title}
 🔔 *Canal:* ${authorName}
@@ -54,7 +56,7 @@ Comandos disponibles:
     }
 
   } catch (error) {
-    await m.reply(`👻 *Tech bot v1 — Error en la operación*
+    await m.reply(`👻 *Michi wabot — Error en la operación*
 
 ❌ ${error.message}`)
     await m.react("⚠️")
@@ -62,10 +64,20 @@ Comandos disponibles:
 }
 
 const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
+  let filePath = null
+  
   try {
     const cleanTitle = cleanName(title) + (type === "mp3" ? ".mp3" : ".mp4")
+    const tmpDir = "./tmp"
+    
+    // Crear directorio tmp si no existe
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true })
+    }
+    
+    filePath = path.join(tmpDir, cleanTitle)
 
-    const msg = `👻 *Tech bot v1 — Descarga en curso*
+    const msg = `👻 *Michi wabot — Descarga en curso*
 
 🤍 *Título:* ${title}
 🖤 Preparando tu ${type === "mp3" ? "audio navideño" : "video festivo"}...`
@@ -144,12 +156,21 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
       throw new Error("Ninguna API pudo procesar la solicitud. Intenta más tarde.")
     }
 
-    // Enviar el archivo
+    // Descargar el archivo a tmp/
+    const fileResponse = await fetch(fileUrl)
+    if (!fileResponse.ok) {
+      throw new Error(`Error al descargar el archivo: ${fileResponse.statusText}`)
+    }
+
+    const buffer = await fileResponse.buffer()
+    fs.writeFileSync(filePath, buffer)
+
+    // Enviar el archivo desde tmp/
     if (type === "mp3") {
       await conn.sendMessage(
         m.chat,
         {
-          audio: { url: fileUrl },
+          audio: fs.readFileSync(filePath),
           mimetype: "audio/mpeg",
           fileName: cleanTitle
         },
@@ -159,7 +180,7 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
       await conn.sendMessage(
         m.chat,
         {
-          video: { url: fileUrl },
+          video: fs.readFileSync(filePath),
           mimetype: "video/mp4",
           fileName: cleanTitle
         },
@@ -170,7 +191,7 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
     await conn.sendMessage(
       m.chat,
       {
-        text: `👻 *Tech bot v1 — Operación completada*
+        text: `👻 *Michi wabot — Operación completada*
 
 🤍 *Título:* ${fileTitle}
 🖤 Entregado con magia navideña.
@@ -182,10 +203,19 @@ const downloadMedia = async (conn, m, url, title, thumbnail, type) => {
     await m.react("✅")
 
   } catch (error) {
-    await m.reply(`👻 *Tech bot v1 — Falla en la entrega*
+    await m.reply(`👻 *Michi wabot — Falla en la entrega*
 
 ❌ ${error.message}`)
     await m.react("❌")
+  } finally {
+    // Limpiar archivo temporal después de enviar
+    if (filePath && fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath)
+      } catch (cleanError) {
+        console.log(`Error al limpiar archivo: ${cleanError.message}`)
+      }
+    }
   }
 }
 
