@@ -13,18 +13,18 @@
 Estos indicadores muestran el estado actualizado del proyecto en GitHub.
 
 ![GitHub stars](https://img.shields.io/github/stars/Anonymous14-dev/Tech-bot-v1?style=for-the-badge&logo=github&color=yellow)
-![GitHub forks](https://img.shields.io/github/forks/WILKER-OFC/Michi-wabot?style=for-the-badge&logo=github&color=blue)
-![GitHub last commit](https://img.shields.io/github/last-commit/WILKER-OFC/Michi-wabot?style=for-the-badge&logo=github&color=green)
+![GitHub forks](https://img.shields.io/github/forks/Anonymous14-dev/Tech-bot-v1?style=for-the-badge&logo=github&color=blue)
+![GitHub last commit](https://img.shields.io/github/last-commit/Anonymous14-dev/Tech-bot-v1?style=for-the-badge&logo=github&color=green)
 
 ---
 
 ## 🤝 𝗖𝗿𝗲𝗱𝗶𝘁𝗼𝘀 𝘆 𝗔𝗴𝗿𝗮𝗱𝗲𝗰𝗶𝗺𝗶𝗲𝗻𝘁𝗼𝘀
 
-* **Creador y Mantenedor Principal:** [WILKER](https://github.com/WILKER-OFC)
+* **Creador y Mantenedor Principal:** [Anonymous](https://github.com/Anonymous14-dev)
 
     <div align="center">
-      <a href="https://github.com/WILKER-OFC">
-        <img src="https://github.com/WILKER-OFC.png" alt="WILKER-OFC's GitHub Profile Picture" width="80" style="border-radius:50%;" />
+      <a href="https://github.com/Anonymous14-dev">
+        <img src="https://github.com/Anonymous14-dev.png" alt="Anonymous14-dev's GitHub Profile Picture" width="80" style="border-radius:50%;" />
       </a>
     </div>
 
@@ -44,4 +44,4 @@ Estos indicadores muestran el estado actualizado del proyecto en GitHub.
 Este proyecto está bajo la **Licencia MIT**. Puedes usar, modificar y distribuir el código libremente, siempre y cuando mantengas los créditos originales.
 
 
-© 2026 WILKER OFC
+© 2026 Anonymous14-dev
