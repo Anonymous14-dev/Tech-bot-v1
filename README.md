@@ -1,11 +1,47 @@
-<img src="https://readme-typing-svg.herokuapp.com/?font=mono&size=30&duration=4000&color=0000FF&center=falso&vCenter=falso&lines=🜛+TECH-BOT+🜛;۞+TEAM+TECH+۞;@WILKER-OFC✞">
+# ⭐ Tech bot v1
 
-> Creador del bot
+<div align="center">
+  <img src="https://iili.io/FZQTsXR.jpg" alt="Tech-bot-v1 Logo" width="150"/>
+  <br>
+  <p>Un bot de WhatsApp ligero, confiable y fácil de usar, diseñado para la comunidad.</p>
+</div>
 
-> 🔶 WILKERSON/S
+---
 
-> COLABORADORES OFICIALES
+## 📊 𝗘𝘀𝘁𝗮𝗱𝗼 𝗱𝗲𝗹 𝗥𝗲𝗽𝗼𝘀𝗶𝘁𝗼𝗿𝗶𝗼
 
-> 🔶 Damian_yt
+Estos indicadores muestran el estado actualizado del proyecto en GitHub.
 
-> BOT EN DESARROLLO 
+![GitHub stars](https://img.shields.io/github/stars/Anonymous14-dev/Tech-bot-v1?style=for-the-badge&logo=github&color=yellow)
+![GitHub forks](https://img.shields.io/github/forks/WILKER-OFC/Michi-wabot?style=for-the-badge&logo=github&color=blue)
+![GitHub last commit](https://img.shields.io/github/last-commit/WILKER-OFC/Michi-wabot?style=for-the-badge&logo=github&color=green)
+
+---
+
+## 🤝 𝗖𝗿𝗲𝗱𝗶𝘁𝗼𝘀 𝘆 𝗔𝗴𝗿𝗮𝗱𝗲𝗰𝗶𝗺𝗶𝗲𝗻𝘁𝗼𝘀
+
+* **Creador y Mantenedor Principal:** [WILKER](https://github.com/WILKER-OFC)
+
+    <div align="center">
+      <a href="https://github.com/WILKER-OFC">
+        <img src="https://github.com/WILKER-OFC.png" alt="WILKER-OFC's GitHub Profile Picture" width="80" style="border-radius:50%;" />
+      </a>
+    </div>
+
+---
+
+## 🦖 𝗥𝗲𝗰𝘂𝗿𝘀𝗼𝘀 𝗔𝗱𝗶𝗰𝗶𝗼𝗻𝗮𝗹𝗲𝘀
+
+* **🌤 swallox Host:** Nuestro proveedor de hosting recomendado para proyectos.
+    * <a href="https://dash.swallox.com">
+          <img src="https://h.uguu.se/ariKTrAk.jpeg" alt="swalloz Host" width="150"/>
+      </a>
+
+---
+
+## ❄ 𝗟𝗶𝗰𝗲𝗻𝗰𝗶𝗮
+
+Este proyecto está bajo la **Licencia MIT**. Puedes usar, modificar y distribuir el código libremente, siempre y cuando mantengas los créditos originales.
+
+
+© 2026 WILKER OFC
