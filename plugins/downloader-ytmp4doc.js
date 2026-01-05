@@ -2,7 +2,7 @@ import yts from "yt-search"
 import fetch from "node-fetch"
 
 const handler = async (m, { conn, text, command }) => {
-  if (!text) return m.reply(`👻 *Tech bot v1 invocando*
+  if (!text) return m.reply(`👻 *Tech bot v1! invocando*
 
 🤍 Pronuncia el nombre del video o entrega el enlace de YouTube.`)
 
