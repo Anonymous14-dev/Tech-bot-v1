@@ -27,9 +27,9 @@ const defaultMenu = {
 
 > 👋 *Hola %name! %greeting…*
 
-📅 Fecha: %date
-⏳ Tiempo activo: %uptime
-%readmore`.trimStart(),
+> 🥮 Fecha = *%date*
+> ⏳ Tiempo activo: %uptime
+> %readmore`.trimStart(),
 
   header: '\n*╭━━━━➤* %category',
   body: '┃ ° %cmd %islimit %isPremium',
