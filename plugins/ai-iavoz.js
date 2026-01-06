@@ -14,13 +14,41 @@ let handler = async (m, { conn, text, usedPrefix }) => {
   try {
     await conn.sendPresenceUpdate('recording', m.chat)
 
-    // Usando la nueva API con apikey
-    const apikey = 'WilkerKeydukz9l6871'
-    const res = await fetch(`https://api-adonix.ultraplus.click/ai/iavoz?apikey=${apikey}&q=${encodeURIComponent(text)}`)
+    // Opción 1: Primero probemos sin parámetros extra
+    const url = `https://api-adonix.ultraplus.click/ai/iavoz?q=${encodeURIComponent(text)}`
+    console.log('URL de solicitud:', url)
+    
+    const res = await fetch(url, {
+      headers: {
+        'apikey': 'WilkerKeydukz9l6871'
+      }
+    })
 
-    if (!res.ok) throw new Error(`Error en la API: ${res.status}`)
+    console.log('Status de respuesta:', res.status)
+    console.log('Headers de respuesta:', res.headers)
+    
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.error('Error de la API:', errorText)
+      throw new Error(`Error en la API: ${res.status} - ${errorText}`)
+    }
+
+    // Verificar el content-type
+    const contentType = res.headers.get('content-type')
+    console.log('Content-Type recibido:', contentType)
+    
+    if (!contentType || !contentType.includes('audio')) {
+      const responseText = await res.text()
+      console.log('Respuesta no audio:', responseText.substring(0, 200))
+      throw new Error('La API no devolvió audio')
+    }
 
     const bufferAudio = await streamToBuffer(res.body)
+    console.log('Tamaño del buffer de audio:', bufferAudio.length, 'bytes')
+    
+    if (bufferAudio.length === 0) {
+      throw new Error('El buffer de audio está vacío')
+    }
 
     await conn.sendMessage(m.chat, {
       audio: bufferAudio,
@@ -29,8 +57,8 @@ let handler = async (m, { conn, text, usedPrefix }) => {
     }, { quoted: m })
 
   } catch (e) {
-    console.error(e)
-    await conn.reply(m.chat, '❌ Error al generar la voz, intentalo otra vez', m)
+    console.error('Error completo:', e)
+    await conn.reply(m.chat, `❌ Error: ${e.message}\n\nPuedes intentar:\n1. Verificar la API\n2. Probar con otro texto\n3. Contactar al desarrollador`, m)
   }
 }
 
