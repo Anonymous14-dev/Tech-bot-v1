@@ -14,9 +14,11 @@ let handler = async (m, { conn, text, usedPrefix }) => {
   try {
     await conn.sendPresenceUpdate('recording', m.chat)
 
-    const res = await fetch(`https://myapiadonix.vercel.app/api/adonixvoz?q=${encodeURIComponent(text)}`)
+    // Usando la nueva API con apikey
+    const apikey = 'WilkerKeydukz9l6871'
+    const res = await fetch(`https://api-adonix.ultraplus.click/ai/iavoz?apikey=${apikey}&q=${encodeURIComponent(text)}`)
 
-    if (!res.ok) throw new Error('No pude obtener audio de Adonix')
+    if (!res.ok) throw new Error(`Error en la API: ${res.status}`)
 
     const bufferAudio = await streamToBuffer(res.body)
 
