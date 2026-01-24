@@ -1,47 +1,43 @@
-# ⭐ Tech bot v1
+# Tech Bot v1 🤖
 
-<div align="center">
-  <img src="https://files.catbox.moe/ojxw8v.jpg" alt="Tech-bot-v1 Logo" width="150"/>
-  <br>
-  <p>Un bot de WhatsApp ligero, confiable y fácil de usar, diseñado para la comunidad.</p>
-</div>
+![Tech Bot Logo](https://files.catbox.moe/ojxw8v.jpg)
+
+**Tech Bot v1** es un bot multifuncional desarrollado por **Tech Bot Team** para gestionar y mejorar la experiencia en comunidades digitales. Diseñado con las últimas tecnologías, ofrece características avanzadas de moderación, utilidad y entretenimiento.
 
 ---
 
-## 📊 𝗘𝘀𝘁𝗮𝗱𝗼 𝗱𝗲𝗹 𝗥𝗲𝗽𝗼𝘀𝗶𝘁𝗼𝗿𝗶𝗼
+## 🚀 Características
 
-Estos indicadores muestran el estado actualizado del proyecto en GitHub.
+### 🔧 **Herramientas de Moderación**
+- **Auto-moderación** inteligente con filtros personalizables
+- Sistema de **warns/avisos** y registros de infracciones
+- Detección automática de spam y contenido inapropiado
+- Gestión de roles y permisos automatizada
 
-![GitHub stars](https://img.shields.io/github/stars/Anonymous14-dev/Tech-bot-v1?style=for-the-badge&logo=github&color=yellow)
-![GitHub forks](https://img.shields.io/github/forks/Anonymous14-dev/Tech-bot-v1?style=for-the-badge&logo=github&color=blue)
-![GitHub last commit](https://img.shields.io/github/last-commit/Anonymous14-dev/Tech-bot-v1?style=for-the-badge&logo=github&color=green)
+### 🎮 **Utilidades para Usuarios**
+- Sistema de niveles y experiencia (XP)
+- Economía virtual con moneda personalizada
+- Perfiles personalizables y tarjetas de usuario
+- Comandos de utilidad (información del servidor, clima, etc.)
 
----
+### 🎉 **Entretenimiento**
+- Sistema de minijuegos integrados
+- Comandos de memes y contenido aleatorio
+- Música de alta calidad con soporte para múltiples plataformas
+- Comandos de interacción social (saludos, abrazos, etc.)
 
-## 🤝 𝗖𝗿𝗲𝗱𝗶𝘁𝗼𝘀 𝘆 𝗔𝗴𝗿𝗮𝗱𝗲𝗰𝗶𝗺𝗶𝗲𝗻𝘁𝗼𝘀
-
-* **Creador y Mantenedor Principal:** [Anonymous](https://github.com/Anonymous14-dev)
-
-    <div align="center">
-      <a href="https://github.com/Anonymous14-dev">
-        <img src="https://github.com/Anonymous14-dev.png" alt="Anonymous14-dev's GitHub Profile Picture" width="80" style="border-radius:50%;" />
-      </a>
-    </div>
-
----
-
-## 🦖 𝗥𝗲𝗰𝘂𝗿𝘀𝗼𝘀 𝗔𝗱𝗶𝗰𝗶𝗼𝗻𝗮𝗹𝗲𝘀
-
-* **🌤 swallox Host:** Nuestro proveedor de hosting recomendado para proyectos.
-    * <a href="https://dash.swallox.com">
-          <img src="https://h.uguu.se/ariKTrAk.jpeg" alt="swalloz Host" width="150"/>
-      </a>
+### ⚙️ **Personalización Avanzada**
+- Configuración modular por servidor
+- Sistema de logs y auditoría completo
+- Dashboard web para configuración intuitiva
+- Plugins y módulos adicionales
 
 ---
 
-## ❄ 𝗟𝗶𝗰𝗲𝗻𝗰𝗶𝗮
+## 📦 Instalación
 
-Este proyecto está bajo la **Licencia MIT**. Puedes usar, modificar y distribuir el código libremente, siempre y cuando mantengas los créditos originales.
-
-
-© 2026 Anonymous14-dev
+### Prerrequisitos
+- Node.js 20 o superior
+- npm o yarn
+- Token de bot de WhatsApp
+- MongoDB (opcional para algunas funciones)
