@@ -10,7 +10,7 @@ var handler = async (m, { conn }) => {
 
 💫 *NOTA IMPORTANTE:*
 
-¿Tienes preguntas, dudas o sugerencias sobre el funcionamiento de *tech bot*? Puedes contactar a mis creadores.
+¿Tienes preguntas, dudas o sugerencias sobre el funcionamiento de *tech bot*? Puedes contactar a mi creador.
 
 *Una cosa:* Los bots no descansan, pero yo sí, así que no me andes mandando mensaje a las 3am porque no te voy a contestar… 😴
 
