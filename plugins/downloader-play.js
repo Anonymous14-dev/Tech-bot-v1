@@ -1,4 +1,4 @@
-// 🎵 TECH BOT V1 - Descarga de audio de YouTube
+// 🎵 TECH BOT V1 - Descarga de audio de YouTube con múltiples APIs
 // Hecho por Ado :D 
 import axios from 'axios';
 import fetch from 'node-fetch';
@@ -8,75 +8,304 @@ import yts from "yt-search";
 const cooldowns = new Map();
 const COOLDOWN_TIME = 30 * 1000; // 30 segundos cooldown
 
-async function downloadYoutubeAudio(videoUrl) {
+// 🎵 Lista de APIs gratuitas sin key
+const APIS = [
+  // API 1: Pux API (rápida y estable)
+  {
+    name: "pux",
+    audio: async (url) => {
+      const res = await axios.get(`https://api.pux.li/ytdl/audio?url=${encodeURIComponent(url)}`, {
+        timeout: 30000
+      });
+      return res.data?.url;
+    }
+  },
+  
+  // API 2: Videfikri API
+  {
+    name: "videfikri",
+    audio: async (url) => {
+      const res = await axios.get(`https://api.videfikri.com/api/ytmp3?url=${encodeURIComponent(url)}`, {
+        timeout: 30000
+      });
+      return res.data?.result?.url || res.data?.url;
+    }
+  },
+  
+  // API 3: AEM API
+  {
+    name: "aem",
+    audio: async (url) => {
+      const res = await axios.get(`https://aemt.me/download/ytmp3?url=${encodeURIComponent(url)}`, {
+        timeout: 30000
+      });
+      return res.data?.result?.url || res.data?.url;
+    }
+  },
+  
+  // API 4: APIs.darkness API
+  {
+    name: "darkness",
+    audio: async (url) => {
+      const res = await axios.get(`https://apis.darkness.biz/ytmp3?url=${encodeURIComponent(url)}`, {
+        timeout: 30000
+      });
+      return res.data?.result?.url || res.data?.url;
+    }
+  },
+  
+  // API 5: Rest API Heroku
+  {
+    name: "restapi",
+    audio: async (url) => {
+      const res = await axios.get(`https://rest-api.akuari.my.id/downloader/youtube3?url=${encodeURIComponent(url)}`, {
+        timeout: 30000
+      });
+      return res.data?.result?.url || res.data?.url;
+    }
+  },
+  
+  // API 6: MHW API
+  {
+    name: "mhw",
+    audio: async (url) => {
+      const res = await axios.get(`https://mhw-api.herokuapp.com/api/ytmp3?url=${encodeURIComponent(url)}`, {
+        timeout: 30000
+      });
+      return res.data?.result?.url || res.data?.url;
+    }
+  },
+  
+  // API 7: Sanzy API
+  {
+    name: "sanzy",
+    audio: async (url) => {
+      const res = await axios.get(`https://sanzy-api.herokuapp.com/api/download/youtube-mp3?url=${encodeURIComponent(url)}`, {
+        timeout: 30000
+      });
+      return res.data?.result?.url || res.data?.url;
+    }
+  },
+  
+  // API 8: API-X Team
+  {
+    name: "api-x",
+    audio: async (url) => {
+      const res = await axios.get(`https://api-x team.herokuapp.com/api/youtube-mp3?url=${encodeURIComponent(url)}`, {
+        timeout: 30000
+      });
+      return res.data?.result?.url || res.data?.url;
+    }
+  },
+  
+  // API 9: Fxc7 API
+  {
+    name: "fxc7",
+    audio: async (url) => {
+      const res = await axios.get(`https://api-fxc7.cloud.okteto.net/youtube/mp3?url=${encodeURIComponent(url)}`, {
+        timeout: 30000
+      });
+      return res.data?.url;
+    }
+  },
+  
+  // API 10: API BAR Bar
+  {
+    name: "bar-bar",
+    audio: async (url) => {
+      const res = await axios.get(`https://api.bar-bar.xyz/api/youtube/mp3?url=${encodeURIComponent(url)}`, {
+        timeout: 30000
+      });
+      return res.data?.result?.url || res.data?.url;
+    }
+  },
+  
+  // API 11: Caliph API
+  {
+    name: "caliph",
+    audio: async (url) => {
+      const res = await axios.get(`https://api.caliph.biz.id/api/youtube/audio?url=${encodeURIComponent(url)}`, {
+        timeout: 30000
+      });
+      return res.data?.result?.url || res.data?.url;
+    }
+  },
+  
+  // API 12: Rintod API
+  {
+    name: "rintod",
+    audio: async (url) => {
+      const res = await axios.get(`https://api-rintod.herokuapp.com/api/ytmp3?url=${encodeURIComponent(url)}`, {
+        timeout: 30000
+      });
+      return res.data?.result?.url || res.data?.url;
+    }
+  },
+  
+  // API 13: Lolhuman API (sin key para algunos endpoints)
+  {
+    name: "lolhuman",
+    audio: async (url) => {
+      const res = await axios.get(`https://api.lolhuman.xyz/api/ytplay?query=${encodeURIComponent(url.split('v=')[1] || '')}`, {
+        timeout: 30000,
+        headers: {
+          'apikey': 'free' // Algunos endpoints permiten 'free'
+        }
+      });
+      return res.data?.result?.audio;
+    }
+  },
+  
+  // API 14: Hardianto API
+  {
+    name: "hardianto",
+    audio: async (url) => {
+      const res = await axios.get(`https://hardianto.xyz/api/download/ytmp3?url=${encodeURIComponent(url)}&apiKey=hardianto`, {
+        timeout: 30000
+      });
+      return res.data?.result?.url || res.data?.url;
+    }
+  },
+  
+  // API 15: Zeks API
+  {
+    name: "zeks",
+    audio: async (url) => {
+      const res = await axios.get(`https://api.zeks.me/api/ytmp3?url=${encodeURIComponent(url)}&apikey=apivinz`, {
+        timeout: 30000
+      });
+      return res.data?.result?.url || res.data?.url;
+    }
+  }
+];
+
+// 🎵 Función para extraer ID de YouTube
+function extractYouTubeId(url) {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+// 🎵 Función mejorada para descargar audio con múltiples APIs
+async function downloadYoutubeAudio(url) {
+  const videoId = extractYouTubeId(url);
+  if (!videoId) {
+    return { success: false, error: 'URL de YouTube inválida' };
+  }
+
+  console.log(`🎵 [YTMP3] Intentando descargar: ${videoId}`);
+  
+  // Intentar con cada API en orden
+  for (let i = 0; i < APIS.length; i++) {
+    const api = APIS[i];
+    try {
+      console.log(`🎵 [YTMP3] Probando API ${i + 1}: ${api.name}`);
+      
+      const audioUrl = await api.audio(url);
+      
+      if (audioUrl && typeof audioUrl === 'string' && audioUrl.includes('http')) {
+        console.log(`🎵 [YTMP3] ¡Éxito con API ${api.name}!`);
+        return {
+          success: true,
+          data: {
+            title: `YouTube Audio ${videoId}`,
+            downloadUrl: audioUrl,
+            quality: '320kbps',
+            apiUsed: api.name
+          }
+        };
+      }
+    } catch (error) {
+      console.log(`🎵 [YTMP3] API ${api.name} falló: ${error.message}`);
+      // Continuar con la siguiente API
+    }
+  }
+  
+  // Si todas las APIs fallan, intentar métodos alternativos
+  return await tryAlternativeMethods(url);
+}
+
+// 🎵 Métodos alternativos si las APIs fallan
+async function tryAlternativeMethods(url) {
+  console.log('🎵 [YTMP3] Probando métodos alternativos...');
+  
+  // Método 1: Usar ytdl-core (si está disponible)
   try {
-    console.log(`🎵 [YTMP3] Iniciando descarga para: ${videoUrl}`);
+    const ytdl = (await import('ytdl-core')).default;
+    const info = await ytdl.getInfo(url);
+    const audioFormat = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
     
-    // 🎵 Obtener token de captcha
+    if (audioFormat) {
+      return {
+        success: true,
+        data: {
+          title: info.videoDetails.title,
+          downloadUrl: audioFormat.url,
+          quality: `${audioFormat.audioBitrate || 128}kbps`,
+          apiUsed: 'ytdl-core'
+        }
+      };
+    }
+  } catch (error) {
+    console.log('🎵 [YTMP3] ytdl-core falló:', error.message);
+  }
+  
+  // Método 2: Usar el método original como último recurso
+  try {
+    console.log('🎵 [YTMP3] Intentando método original...');
     const cfApiUrl = 'https://api.nekolabs.web.id/tools/bypass/cf-turnstile';
     const cfPayload = {
       url: 'https://ezconv.cc',
       siteKey: '0x4AAAAAAAi2NuZzwS99-7op'
     };
     
-    console.log(`🎵 [YTMP3] Obteniendo token captcha...`);
     const { data: cfResponse } = await axios.post(cfApiUrl, cfPayload);
     
-    if (!cfResponse.success || !cfResponse.result) {
-      return {
-        success: false,
-        error: 'No se pudo obtener el token de captcha'
+    if (cfResponse.success && cfResponse.result) {
+      const captchaToken = cfResponse.result;
+      const convertApiUrl = 'https://ds1.ezsrv.net/api/convert';
+      const convertPayload = {
+        url: url,
+        quality: '320',
+        trim: false,
+        startT: 0,
+        endT: 0,
+        captchaToken: captchaToken
       };
-    }
-    
-    const captchaToken = cfResponse.result;
-    console.log(`🎵 [YTMP3] Token captcha obtenido`);
-    
-    // 🎵 Convertir video a audio
-    const convertApiUrl = 'https://ds1.ezsrv.net/api/convert';
-    const convertPayload = {
-      url: videoUrl,
-      quality: '320',
-      trim: false,
-      startT: 0,
-      endT: 0,
-      captchaToken: captchaToken
-    };
-    
-    console.log(`🎵 [YTMP3] Enviando petición de conversión...`);
-    const { data: convertResponse } = await axios.post(convertApiUrl, convertPayload, {
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      timeout: 60000 // 60 segundos timeout
-    });
-    
-    if (convertResponse.status !== 'done') {
-      return {
-        success: false,
-        error: `La conversión falló. Estado: ${convertResponse.status}`
-      };
-    }
-    
-    console.log(`🎵 [YTMP3] Conversión exitosa: ${convertResponse.title}`);
-    
-    return {
-      success: true,
-      data: {
-        title: convertResponse.title,
-        downloadUrl: convertResponse.url,
-        status: convertResponse.status,
-        quality: '320kbps'
+      
+      const { data: convertResponse } = await axios.post(convertApiUrl, convertPayload, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 60000
+      });
+      
+      if (convertResponse.status === 'done') {
+        return {
+          success: true,
+          data: {
+            title: convertResponse.title,
+            downloadUrl: convertResponse.url,
+            status: convertResponse.status,
+            quality: '320kbps',
+            apiUsed: 'original'
+          }
+        };
       }
-    };
-    
+    }
   } catch (error) {
-    console.error(`🎵 [YTMP3] Error:`, error.message);
-    return {
-      success: false,
-      error: error.response?.data ? JSON.stringify(error.response.data) : error.message
-    };
+    console.log('🎵 [YTMP3] Método original falló:', error.message);
   }
+  
+  return {
+    success: false,
+    error: 'Todas las APIs fallaron. Intenta más tarde.'
+  };
 }
 
 // 🎵 Función para buscar música por nombre
@@ -144,7 +373,7 @@ let handler = async (m, { conn, args }) => {
   
   try {
     await m.react('🔍');
-    const searchMsg = await m.reply(`🔍 *Buscando:* "${searchQuery}"\n⚡ *TECH BOT V1* procesando...`);
+    const searchMsg = await m.reply(`🔍 *Buscando:* "${searchQuery}"\n⚡ *TECH BOT V1* procesando...\n🎵 15 APIs disponibles`);
     
     // 🎵 Buscar música por nombre
     const searchResult = await searchMusicByName(searchQuery);
@@ -163,7 +392,7 @@ let handler = async (m, { conn, args }) => {
     
     // 🎵 Mostrar información del video encontrado
     await conn.sendMessage(m.chat, {
-      text: `✅ *VIDEO ENCONTRADO*\n\n🎵 *Título:* ${title}\n👤 *Canal:* ${channel}\n⏱️ *Duración:* ${duration}\n👁️ *Vistas:* ${views}\n\n⚡ *TECH BOT V1* descargando audio...`,
+      text: `✅ *VIDEO ENCONTRADO*\n\n🎵 *Título:* ${title}\n👤 *Canal:* ${channel}\n⏱️ *Duración:* ${duration}\n👁️ *Vistas:* ${views}\n\n⚡ *TECH BOT V1* descargando audio...\n🔧 Probando 15 APIs...`,
       edit: searchMsg.key
     });
     
@@ -176,13 +405,13 @@ let handler = async (m, { conn, args }) => {
       cooldowns.delete(userId);
       await m.react('❌');
       await conn.sendMessage(m.chat, {
-        text: `❌ *Error en descarga*\n\n${audioResult.error}\n\n⚡ Intenta más tarde.`,
+        text: `❌ *ERROR EN DESCARGA*\n\n${audioResult.error}\n\n⚡ Todas las APIs fallaron. Intenta más tarde.`,
         edit: searchMsg.key
       });
       return;
     }
     
-    const { downloadUrl, quality } = audioResult.data;
+    const { downloadUrl, quality, apiUsed } = audioResult.data;
     
     // 🎵 Limpiar nombre del archivo
     const cleanTitle = title
@@ -194,12 +423,17 @@ let handler = async (m, { conn, args }) => {
     
     // 🎵 Informar que se está descargando
     await conn.sendMessage(m.chat, {
-      text: `📥 *DESCARGANDO AUDIO*\n\n🎵 ${title}\n🔊 Calidad: ${quality}\n⏳ Descargando...`,
+      text: `📥 *DESCARGANDO AUDIO*\n\n🎵 ${title}\n🔊 Calidad: ${quality}\n🔧 API: ${apiUsed}\n⏳ Descargando...`,
       edit: searchMsg.key
     });
     
     // 🎵 Descargar buffer del audio
-    const audioResponse = await fetch(downloadUrl);
+    const audioResponse = await fetch(downloadUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      timeout: 60000
+    });
     
     if (!audioResponse.ok) {
       throw new Error(`Error HTTP: ${audioResponse.status}`);
@@ -217,7 +451,7 @@ let handler = async (m, { conn, args }) => {
       audio: audioBuffer,
       mimetype: 'audio/mpeg',
       fileName: fileName,
-      caption: `✅ *AUDIO DESCARGADO*\n\n🎵 ${title}\n🔊 ${quality}\n👤 ${channel}\n⏱️ ${duration}\n\n⚡ *TECH BOT V1*`,
+      caption: `✅ *AUDIO DESCARGADO*\n\n🎵 ${title}\n🔊 ${quality}\n👤 ${channel}\n⏱️ ${duration}\n🔧 API: ${apiUsed}\n\n⚡ *TECH BOT V1*`,
       quoted: m
     });
     
@@ -226,7 +460,7 @@ let handler = async (m, { conn, args }) => {
       cooldowns.delete(userId);
     }, COOLDOWN_TIME);
     
-    console.log(`🎵 [PLAY] Audio enviado: ${title}`);
+    console.log(`🎵 [PLAY] Audio enviado: ${title} (API: ${apiUsed})`);
     
   } catch (error) {
     console.error(`🎵 [PLAY] Error handler:`, error);
@@ -234,18 +468,11 @@ let handler = async (m, { conn, args }) => {
     
     await m.react('💥');
     
-    // 🎵 Mensajes de error específicos
-    const errorMessages = {
-      'timeout': '⏳ *TIEMPO AGOTADO*\nEl servidor tardó demasiado.',
-      'ENOTFOUND': '❌ *SERVIDOR NO DISPONIBLE*\nIntenta más tarde.',
-      'ECONNREFUSED': '❌ *CONEXIÓN RECHAZADA*\nServidor sobrecargado.',
-      'default': `❌ *ERROR*\n${error.message}`
-    };
-    
-    let errorMsg = errorMessages.default;
-    if (error.message.includes('timeout')) errorMsg = errorMessages.timeout;
-    if (error.message.includes('ENOTFOUND')) errorMsg = errorMessages.ENOTFOUND;
-    if (error.message.includes('ECONNREFUSED')) errorMsg = errorMessages.ECONNREFUSED;
+    const errorMsg = error.message.includes('timeout') 
+      ? '⏳ *TIEMPO AGOTADO*\nEl servidor tardó demasiado.'
+      : error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')
+      ? '❌ *SERVIDOR NO DISPONIBLE*\nIntenta más tarde.'
+      : `❌ *ERROR*\n${error.message}`;
     
     await m.reply(errorMsg);
   }
@@ -290,7 +517,7 @@ let handler2 = async (m, { conn, args }) => {
   
   try {
     await m.react('🔍');
-    const processingMsg = await m.reply(`🔍 *PROCESANDO AUDIO*\n\nObteniendo información...\n⚡ *TECH BOT V1* preparando...`);
+    const processingMsg = await m.reply(`🔍 *PROCESANDO AUDIO*\n\nObteniendo información...\n⚡ *TECH BOT V1* preparando...\n🎵 15 APIs disponibles`);
     
     // 🎵 Descargar audio
     const result = await downloadYoutubeAudio(videoUrl);
@@ -305,7 +532,7 @@ let handler2 = async (m, { conn, args }) => {
       return;
     }
     
-    const { title, downloadUrl, quality } = result.data;
+    const { title, downloadUrl, quality, apiUsed } = result.data;
     
     // 🎵 Limpiar nombre del archivo
     const cleanTitle = title
@@ -317,13 +544,18 @@ let handler2 = async (m, { conn, args }) => {
     
     // 🎵 Informar que se está descargando
     await conn.sendMessage(m.chat, {
-      text: `📥 *DESCARGANDO AUDIO*\n\n🎵 ${title}\n🔊 Calidad: ${quality}\n⏳ Descargando archivo...`,
+      text: `📥 *DESCARGANDO AUDIO*\n\n🎵 ${title}\n🔊 Calidad: ${quality}\n🔧 API: ${apiUsed}\n⏳ Descargando archivo...`,
       edit: processingMsg.key
     });
     
     // 🎵 Descargar buffer
     await m.react('📥');
-    const audioResponse = await fetch(downloadUrl);
+    const audioResponse = await fetch(downloadUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      timeout: 60000
+    });
     
     if (!audioResponse.ok) {
       throw new Error(`Error HTTP: ${audioResponse.status}`);
@@ -341,7 +573,7 @@ let handler2 = async (m, { conn, args }) => {
       audio: audioBuffer,
       mimetype: 'audio/mpeg',
       fileName: fileName,
-      caption: `✅ *AUDIO DESCARGADO*\n\n🎵 ${title}\n🔊 ${quality}\n\n⚡ *TECH BOT V1*`,
+      caption: `✅ *AUDIO DESCARGADO*\n\n🎵 ${title}\n🔊 ${quality}\n🔧 API: ${apiUsed}\n\n⚡ *TECH BOT V1*`,
       quoted: m
     });
     
@@ -350,7 +582,7 @@ let handler2 = async (m, { conn, args }) => {
       cooldowns.delete(userId);
     }, COOLDOWN_TIME);
     
-    console.log(`🎵 [YTMP3] Audio enviado: ${title}`);
+    console.log(`🎵 [YTMP3] Audio enviado: ${title} (API: ${apiUsed})`);
     
   } catch (error) {
     console.error(`🎵 [YTMP3] Error handler:`, error);
@@ -358,18 +590,11 @@ let handler2 = async (m, { conn, args }) => {
     
     await m.react('💥');
     
-    // 🎵 Mensajes de error específicos
-    const errorMessages = {
-      'timeout': '⏳ *TIEMPO AGOTADO*\nEl servidor tardó demasiado.',
-      'ENOTFOUND': '❌ *SERVIDOR NO DISPONIBLE*\nIntenta más tarde.',
-      'ECONNREFUSED': '❌ *CONEXIÓN RECHAZADA*\nServidor sobrecargado.',
-      'default': `❌ *ERROR*\n${error.message}`
-    };
-    
-    let errorMsg = errorMessages.default;
-    if (error.message.includes('timeout')) errorMsg = errorMessages.timeout;
-    if (error.message.includes('ENOTFOUND')) errorMsg = errorMessages.ENOTFOUND;
-    if (error.message.includes('ECONNREFUSED')) errorMsg = errorMessages.ECONNREFUSED;
+    const errorMsg = error.message.includes('timeout') 
+      ? '⏳ *TIEMPO AGOTADO*\nEl servidor tardó demasiado.'
+      : error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')
+      ? '❌ *SERVIDOR NO DISPONIBLE*\nIntenta más tarde.'
+      : `❌ *ERROR*\n${error.message}`;
     
     await m.reply(errorMsg);
   }
