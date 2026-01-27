@@ -1,27 +1,8 @@
 import axios from 'axios';
 import baileys from '@whiskeysockets/baileys';
 import cheerio from 'cheerio';
-import fs from 'fs'
-const premiumFile = './json/premium.json'
-
-// Aseguramos archivo
-if (!fs.existsSync(premiumFile)) fs.writeFileSync(premiumFile, JSON.stringify([]), 'utf-8')
-
-// Función de verificación
-function isBotPremium(conn) {
-  try {
-    let data = JSON.parse(fs.readFileSync(premiumFile))
-    let botId = conn?.user?.id?.split(':')[0] // extraemos el numérico del JID
-    return data.includes(botId)
-  } catch {
-    return false
-  }
-}
 
 let handler = async (m, { conn, text, args }) => {
-  if (!isBotPremium(conn)) {
-    return m.reply('⚠️ *Se necesita que el bot sea premium.*\n> Usa *_.buyprem_* para activarlo.')
-  }
   if (!text) return m.reply(`🤍 Ingresa un texto. Ejemplo: .pinterest bmw`);
 
   try {
@@ -31,14 +12,14 @@ let handler = async (m, { conn, text, args }) => {
       let isVideo = i.download.includes(".mp4");
       await conn.sendMessage(
         m.chat,
-        { [isVideo ? "video" : "image"]: { url: i.download }, caption: i.title, ...rcanal },
-        { quoted: fkontak }
+        { [isVideo ? "video" : "image"]: { url: i.download }, caption: i.title },
+        { quoted: m }
       );
       m.react("☑️");
     } else {
       m.react('🕒');
       const results = await pins(text);
-      if (!results.length) return conn.sendMessage(m.chat, { text: `No se encontraron resultados para "${text}".`, ...rcanal }, { quoted: m });
+      if (!results.length) return conn.sendMessage(m.chat, { text: `No se encontraron resultados para "${text}".` }, { quoted: m });
 
       const medias = results.slice(0, 10).map(img => ({ type: 'image', data: { url: img.image_large_url } }));
 
@@ -51,10 +32,10 @@ let handler = async (m, { conn, text, args }) => {
         }
       );
 
-      await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key }, ...rcanal });
+      await conn.sendMessage(m.chat, { react: { text: '✅', key: m.key } });
     }
   } catch (e) {
-    conn.sendMessage(m.chat, { text: 'Error al obtener imágenes de Pinterest:\n\n' + e, ...rcanal }, { quoted: m });
+    conn.sendMessage(m.chat, { text: 'Error al obtener imágenes de Pinterest:\n\n' + e }, { quoted: m });
   }
 };
 
@@ -91,7 +72,7 @@ async function dl(url) {
 
 const pins = async (judul) => {
   const link = `https://id.pinterest.com/resource/BaseSearchResource/get/?source_url=%2Fsearch%2Fpins%2F%3Fq%3D${encodeURIComponent(judul)}%26rs%3Dtyped&data=%7B%22options%22%3A%7B%22applied_unified_filters%22%3Anull%2C%22appliedProductFilters%22%3A%22---%22%2C%22article%22%3Anull%2C%22auto_correction_disabled%22%3Afalse%2C%22corpus%22%3Anull%2C%22customized_rerank_type%22%3Anull%2C%22domains%22%3Anull%2C%22dynamicPageSizeExpGroup%22%3A%22control%22%2C%22filters%22%3Anull%2C%22journey_depth%22%3Anull%2C%22page_size%22%3Anull%2C%22price_max%22%3Anull%2C%22price_min%22%3Anull%2C%22query_pin_sigs%22%3Anull%2C%22query%22%3A%22${encodeURIComponent(judul)}%22%2C%22redux_normalize_feed%22%3Atrue%2C%22request_params%22%3Anull%2C%22rs%22%3A%22typed%22%2C%22scope%22%3A%22pins%22%2C%22selected_one_bar_modules%22%3Anull%2C%22seoDrawerEnabled%22%3Afalse%2C%22source_id%22%3Anull%2C%22source_module_id%22%3Anull%2C%22source_url%22%3A%22%2Fsearch%2Fpins%2F%3Fq%3D${encodeURIComponent(judul)}%26rs%3Dtyped%22%2C%22top_pin_id%22%3Anull%2C%22top_pin_ids%22%3Anull%7D%2C%22context%22%3A%7B%7D%7D`;
-  
+
   const headers = {
     'accept': 'application/json, text/javascript, */*; q=0.01',
     'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
