@@ -1,352 +1,168 @@
-// 🎵 TECH BOT V1 - Descarga de audio de YouTube con múltiples APIs
-// Hecho por Ado :D 
-import axios from 'axios';
-import fetch from 'node-fetch';
-import yts from "yt-search";
+// 🎵 TECH BOT V1 - Descargador YouTube mejorado
+// Hecho por Ado :D
+import axios from "axios";
+import fetch from "node-fetch";
 
 // 🎵 Cooldown system
 const cooldowns = new Map();
 const COOLDOWN_TIME = 30 * 1000; // 30 segundos cooldown
 
-// 🎵 Lista de APIs gratuitas sin key
-const APIS = [
-  // API 1: Pux API (rápida y estable)
-  {
-    name: "pux",
-    audio: async (url) => {
-      const res = await axios.get(`https://api.pux.li/ytdl/audio?url=${encodeURIComponent(url)}`, {
-        timeout: 30000
-      });
-      return res.data?.url;
-    }
-  },
-  
-  // API 2: Videfikri API
-  {
-    name: "videfikri",
-    audio: async (url) => {
-      const res = await axios.get(`https://api.videfikri.com/api/ytmp3?url=${encodeURIComponent(url)}`, {
-        timeout: 30000
-      });
-      return res.data?.result?.url || res.data?.url;
-    }
-  },
-  
-  // API 3: AEM API
-  {
-    name: "aem",
-    audio: async (url) => {
-      const res = await axios.get(`https://aemt.me/download/ytmp3?url=${encodeURIComponent(url)}`, {
-        timeout: 30000
-      });
-      return res.data?.result?.url || res.data?.url;
-    }
-  },
-  
-  // API 4: APIs.darkness API
-  {
-    name: "darkness",
-    audio: async (url) => {
-      const res = await axios.get(`https://apis.darkness.biz/ytmp3?url=${encodeURIComponent(url)}`, {
-        timeout: 30000
-      });
-      return res.data?.result?.url || res.data?.url;
-    }
-  },
-  
-  // API 5: Rest API Heroku
-  {
-    name: "restapi",
-    audio: async (url) => {
-      const res = await axios.get(`https://rest-api.akuari.my.id/downloader/youtube3?url=${encodeURIComponent(url)}`, {
-        timeout: 30000
-      });
-      return res.data?.result?.url || res.data?.url;
-    }
-  },
-  
-  // API 6: MHW API
-  {
-    name: "mhw",
-    audio: async (url) => {
-      const res = await axios.get(`https://mhw-api.herokuapp.com/api/ytmp3?url=${encodeURIComponent(url)}`, {
-        timeout: 30000
-      });
-      return res.data?.result?.url || res.data?.url;
-    }
-  },
-  
-  // API 7: Sanzy API
-  {
-    name: "sanzy",
-    audio: async (url) => {
-      const res = await axios.get(`https://sanzy-api.herokuapp.com/api/download/youtube-mp3?url=${encodeURIComponent(url)}`, {
-        timeout: 30000
-      });
-      return res.data?.result?.url || res.data?.url;
-    }
-  },
-  
-  // API 8: API-X Team
-  {
-    name: "api-x",
-    audio: async (url) => {
-      const res = await axios.get(`https://api-x team.herokuapp.com/api/youtube-mp3?url=${encodeURIComponent(url)}`, {
-        timeout: 30000
-      });
-      return res.data?.result?.url || res.data?.url;
-    }
-  },
-  
-  // API 9: Fxc7 API
-  {
-    name: "fxc7",
-    audio: async (url) => {
-      const res = await axios.get(`https://api-fxc7.cloud.okteto.net/youtube/mp3?url=${encodeURIComponent(url)}`, {
-        timeout: 30000
-      });
-      return res.data?.url;
-    }
-  },
-  
-  // API 10: API BAR Bar
-  {
-    name: "bar-bar",
-    audio: async (url) => {
-      const res = await axios.get(`https://api.bar-bar.xyz/api/youtube/mp3?url=${encodeURIComponent(url)}`, {
-        timeout: 30000
-      });
-      return res.data?.result?.url || res.data?.url;
-    }
-  },
-  
-  // API 11: Caliph API
-  {
-    name: "caliph",
-    audio: async (url) => {
-      const res = await axios.get(`https://api.caliph.biz.id/api/youtube/audio?url=${encodeURIComponent(url)}`, {
-        timeout: 30000
-      });
-      return res.data?.result?.url || res.data?.url;
-    }
-  },
-  
-  // API 12: Rintod API
-  {
-    name: "rintod",
-    audio: async (url) => {
-      const res = await axios.get(`https://api-rintod.herokuapp.com/api/ytmp3?url=${encodeURIComponent(url)}`, {
-        timeout: 30000
-      });
-      return res.data?.result?.url || res.data?.url;
-    }
-  },
-  
-  // API 13: Lolhuman API (sin key para algunos endpoints)
-  {
-    name: "lolhuman",
-    audio: async (url) => {
-      const res = await axios.get(`https://api.lolhuman.xyz/api/ytplay?query=${encodeURIComponent(url.split('v=')[1] || '')}`, {
-        timeout: 30000,
-        headers: {
-          'apikey': 'free' // Algunos endpoints permiten 'free'
-        }
-      });
-      return res.data?.result?.audio;
-    }
-  },
-  
-  // API 14: Hardianto API
-  {
-    name: "hardianto",
-    audio: async (url) => {
-      const res = await axios.get(`https://hardianto.xyz/api/download/ytmp3?url=${encodeURIComponent(url)}&apiKey=hardianto`, {
-        timeout: 30000
-      });
-      return res.data?.result?.url || res.data?.url;
-    }
-  },
-  
-  // API 15: Zeks API
-  {
-    name: "zeks",
-    audio: async (url) => {
-      const res = await axios.get(`https://api.zeks.me/api/ytmp3?url=${encodeURIComponent(url)}&apikey=apivinz`, {
-        timeout: 30000
-      });
-      return res.data?.result?.url || res.data?.url;
-    }
-  }
-];
+const UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Mobile Safari/537.36";
 
-// 🎵 Función para extraer ID de YouTube
-function extractYouTubeId(url) {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
-    /^([a-zA-Z0-9_-]{11})$/
-  ];
-  
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) return match[1];
+function extractYouTubeId(input) {
+  const s = String(input || "").trim();
+  if (!s) return null;
+
+  const m1 = s.match(/(?:v=|\/shorts\/|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if (m1?.[1]) return m1[1];
+
+  const m2 = s.match(/^[A-Za-z0-9_-]{11}$/);
+  if (m2?.[0]) return m2[0];
+
+  return null;
+}
+
+function pickQuality(type, quality) {
+  const t = String(type || "").toLowerCase();
+  const q = Number(quality);
+
+  if (t === "audio" || t === "mp3") {
+    const allowed = new Set([64, 96, 128, 160, 192, 256, 320]);
+    return allowed.has(q) ? q : 128;
+  }
+
+  const allowed = new Set([144, 240, 360, 480, 720, 1080, 1440, 2160]);
+  return allowed.has(q) ? q : 720;
+}
+
+function baseHeaders(ref) {
+  return {
+    "User-Agent": UA,
+    Accept: "application/json, text/plain, */*",
+    "Accept-Language": "es-US,es-419;q=0.9,es;q=0.8",
+    Origin: ref,
+    Referer: `${ref}/`,
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "cross-site",
+    "sec-ch-ua": '"Chromium";v="123", "Not(A:Brand";v="24", "Google Chrome";v="123"',
+    "sec-ch-ua-mobile": "?1",
+    "sec-ch-ua-platform": '"Android"'
+  };
+}
+
+async function getSanityKey(timeout = 20000) {
+  const ref = "https://frame.y2meta-uk.com";
+
+  const res = await axios.get("https://cnv.cx/v2/sanity/key", {
+    timeout,
+    headers: { ...baseHeaders(ref), "Content-Type": "application/json" },
+    validateStatus: () => true
+  });
+
+  if (res.status !== 200) throw new Error(`SANITY_KEY_HTTP_${res.status}`);
+
+  const key = res?.data?.key;
+  if (!key) throw new Error("SANITY_KEY_MISSING");
+
+  return { key, ref };
+}
+
+function toForm(data) {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(data)) p.set(k, String(v));
+  return p;
+}
+
+function normalizeObj(data) {
+  if (data && typeof data === "object") return data;
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
   }
   return null;
 }
 
-// 🎵 Función mejorada para descargar audio con múltiples APIs
-async function downloadYoutubeAudio(url) {
-  const videoId = extractYouTubeId(url);
-  if (!videoId) {
-    return { success: false, error: 'URL de YouTube inválida' };
-  }
-
-  console.log(`🎵 [YTMP3] Intentando descargar: ${videoId}`);
-  
-  // Intentar con cada API en orden
-  for (let i = 0; i < APIS.length; i++) {
-    const api = APIS[i];
-    try {
-      console.log(`🎵 [YTMP3] Probando API ${i + 1}: ${api.name}`);
-      
-      const audioUrl = await api.audio(url);
-      
-      if (audioUrl && typeof audioUrl === 'string' && audioUrl.includes('http')) {
-        console.log(`🎵 [YTMP3] ¡Éxito con API ${api.name}!`);
-        return {
-          success: true,
-          data: {
-            title: `YouTube Audio ${videoId}`,
-            downloadUrl: audioUrl,
-            quality: '320kbps',
-            apiUsed: api.name
-          }
-        };
-      }
-    } catch (error) {
-      console.log(`🎵 [YTMP3] API ${api.name} falló: ${error.message}`);
-      // Continuar con la siguiente API
-    }
-  }
-  
-  // Si todas las APIs fallan, intentar métodos alternativos
-  return await tryAlternativeMethods(url);
-}
-
-// 🎵 Métodos alternativos si las APIs fallan
-async function tryAlternativeMethods(url) {
-  console.log('🎵 [YTMP3] Probando métodos alternativos...');
-  
-  // Método 1: Usar ytdl-core (si está disponible)
+// 🎵 Función principal para descargar de YouTube
+async function y2mateDirect(url, opts = {}) {
   try {
-    const ytdl = (await import('ytdl-core')).default;
-    const info = await ytdl.getInfo(url);
-    const audioFormat = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
-    
-    if (audioFormat) {
+    const videoId = extractYouTubeId(url);
+    if (!videoId) {
+      return { status: false, error: "INVALID_YOUTUBE_URL", input: { url } };
+    }
+
+    const typeRaw = String(opts.type || "audio").toLowerCase();
+    const type = typeRaw === "video" || typeRaw === "mp4" ? "video" : "audio";
+    const format = type === "video" ? "mp4" : "mp3";
+    const quality = pickQuality(type, opts.quality);
+
+    const timeout = Number(opts.timeout || 45000);
+    const { key, ref } = await getSanityKey(Math.min(timeout, 20000));
+
+    const payload = {
+      link: `https://youtu.be/${videoId}`,
+      format,
+      audioBitrate: type === "audio" ? quality : 128,
+      videoQuality: type === "video" ? quality : 720,
+      filenameStyle: "pretty",
+      vCodec: "h264"
+    };
+
+    const res = await axios.post("https://cnv.cx/v2/converter", toForm(payload), {
+      timeout,
+      headers: {
+        ...baseHeaders(ref),
+        Accept: "*/*",
+        "Content-Type": "application/x-www-form-urlencoded",
+        key
+      },
+      validateStatus: () => true
+    });
+
+    if (res.status !== 200) {
       return {
-        success: true,
-        data: {
-          title: info.videoDetails.title,
-          downloadUrl: audioFormat.url,
-          quality: `${audioFormat.audioBitrate || 128}kbps`,
-          apiUsed: 'ytdl-core'
-        }
+        status: false,
+        error: `CONVERTER_HTTP_${res.status}`,
+        input: { url, type, quality }
       };
     }
-  } catch (error) {
-    console.log('🎵 [YTMP3] ytdl-core falló:', error.message);
-  }
-  
-  // Método 2: Usar el método original como último recurso
-  try {
-    console.log('🎵 [YTMP3] Intentando método original...');
-    const cfApiUrl = 'https://api.nekolabs.web.id/tools/bypass/cf-turnstile';
-    const cfPayload = {
-      url: 'https://ezconv.cc',
-      siteKey: '0x4AAAAAAAi2NuZzwS99-7op'
-    };
-    
-    const { data: cfResponse } = await axios.post(cfApiUrl, cfPayload);
-    
-    if (cfResponse.success && cfResponse.result) {
-      const captchaToken = cfResponse.result;
-      const convertApiUrl = 'https://ds1.ezsrv.net/api/convert';
-      const convertPayload = {
-        url: url,
-        quality: '320',
-        trim: false,
-        startT: 0,
-        endT: 0,
-        captchaToken: captchaToken
-      };
-      
-      const { data: convertResponse } = await axios.post(convertApiUrl, convertPayload, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 60000
-      });
-      
-      if (convertResponse.status === 'done') {
-        return {
-          success: true,
-          data: {
-            title: convertResponse.title,
-            downloadUrl: convertResponse.url,
-            status: convertResponse.status,
-            quality: '320kbps',
-            apiUsed: 'original'
-          }
-        };
-      }
-    }
-  } catch (error) {
-    console.log('🎵 [YTMP3] Método original falló:', error.message);
-  }
-  
-  return {
-    success: false,
-    error: 'Todas las APIs fallaron. Intenta más tarde.'
-  };
-}
 
-// 🎵 Función para buscar música por nombre
-async function searchMusicByName(query) {
-  try {
-    console.log(`🎵 [SEARCH] Buscando: "${query}"`);
-    
-    const search = await yts(query);
-    
-    if (!search.videos || !search.videos.length) {
+    const obj = normalizeObj(res.data);
+    const direct = obj?.url;
+    const title = obj?.filename || `video_${videoId}`;
+
+    if (!direct) {
       return {
-        success: false,
-        error: 'No se encontraron resultados'
+        status: false,
+        error: "NO_URL_IN_RESPONSE",
+        input: { url, type, quality },
+        raw: obj ?? res.data
       };
     }
-    
-    // Tomar el primer resultado
-    const video = search.videos[0];
-    
-    return {
-      success: true,
-      data: {
-        title: video.title,
-        url: video.url,
-        thumbnail: `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`,
-        duration: video.timestamp,
-        channel: video.author.name,
-        views: video.views.toLocaleString()
-      }
+
+    return { 
+      status: true, 
+      videoId, 
+      type, 
+      format, 
+      quality, 
+      url: direct,
+      title: title,
+      filename: `${title.replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, '_').substring(0, 50)}.${format}`
     };
-    
   } catch (error) {
-    console.error(`🎵 [SEARCH] Error:`, error);
+    console.error("🎵 [Y2MATE] Error:", error.message);
     return {
-      success: false,
-      error: 'Error en la búsqueda'
+      status: false,
+      error: error.message || "UNKNOWN_ERROR"
     };
   }
 }
 
-// 🎵 Handler principal para .play (búsqueda por nombre)
+// 🎵 Handler principal para .play (descarga directa)
 let handler = async (m, { conn, args }) => {
   const userId = m.sender;
   
@@ -360,107 +176,128 @@ let handler = async (m, { conn, args }) => {
     }
   }
   
-  // 🎵 Verificar si hay búsqueda
+  // 🎵 Verificar si hay búsqueda o URL
   if (!args[0]) {
     await m.react('❓');
-    return m.reply(`🎵 *Usa:* .play <nombre de canción>\nEjemplo: .play bad bunny tití me preguntó`);
+    return m.reply(`🎵 *Usa:* .play <nombre o URL de YouTube>\nEjemplo: .play bad bunny tití me preguntó\nEjemplo: .play https://youtu.be/abc123`);
   }
   
-  const searchQuery = args.join(' ');
+  const query = args.join(' ');
+  let videoUrl = query;
+  
+  // 🎵 Si no es una URL, asumimos que es una búsqueda (simplificado)
+  // En una versión completa deberías integrar yt-search aquí
+  if (!query.match(/(youtube\.com|youtu\.be)/)) {
+    await m.react('❓');
+    return m.reply(`🎵 *Búsqueda por texto temporalmente deshabilitada*\n\nPor ahora usa solo URLs de YouTube:\n.play https://youtu.be/...\n\n⚡ *TECH BOT V1*`);
+  }
+  
+  // 🎵 Extraer ID de video si es necesario
+  if (videoUrl.includes('youtu.be/')) {
+    const videoId = videoUrl.split('youtu.be/')[1]?.split('?')[0];
+    videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  }
   
   // 🎵 Activar cooldown
   cooldowns.set(userId, Date.now() + COOLDOWN_TIME);
   
   try {
     await m.react('🔍');
-    const searchMsg = await m.reply(`🔍 *Buscando:* "${searchQuery}"\n⚡ *TECH BOT V1* procesando...\n🎵 15 APIs disponibles`);
+    const processingMsg = await m.reply(`🔍 *PROCESANDO SOLICITUD*\n\nObteniendo información del video...\n⚡ *TECH BOT V1* trabajando...`);
     
-    // 🎵 Buscar música por nombre
-    const searchResult = await searchMusicByName(searchQuery);
+    // 🎵 Opciones del usuario (calidad)
+    let quality = 320; // Calidad por defecto para audio
+    let type = 'audio'; // Tipo por defecto
     
-    if (!searchResult.success) {
+    // Detectar si el usuario quiere video
+    if (args.includes('video') || args.includes('mp4') || args.includes('720') || args.includes('1080')) {
+      type = 'video';
+      quality = 720; // Calidad por defecto para video
+      
+      // Buscar calidad específica en los argumentos
+      for (const arg of args) {
+        const num = parseInt(arg);
+        if ([144, 240, 360, 480, 720, 1080, 1440, 2160].includes(num)) {
+          quality = num;
+          break;
+        }
+      }
+    }
+    
+    // 🎵 Obtener enlace de descarga
+    const result = await y2mateDirect(videoUrl, { 
+      type: type, 
+      quality: quality,
+      timeout: 60000 
+    });
+    
+    if (!result.status) {
       cooldowns.delete(userId);
       await m.react('❌');
       await conn.sendMessage(m.chat, {
-        text: `❌ *No se encontró:* "${searchQuery}"\n\n⚡ Intenta con otro nombre.`,
-        edit: searchMsg.key
+        text: `❌ *ERROR EN DESCARGA*\n\n${result.error}\n\n⚡ Intenta con otro video o más tarde.`,
+        edit: processingMsg.key
       });
       return;
     }
     
-    const { title, url, thumbnail, duration, channel, views } = searchResult.data;
+    const { title, url: downloadUrl, format, quality: finalQuality, filename } = result;
     
-    // 🎵 Mostrar información del video encontrado
+    // 🎵 Mostrar información del video
     await conn.sendMessage(m.chat, {
-      text: `✅ *VIDEO ENCONTRADO*\n\n🎵 *Título:* ${title}\n👤 *Canal:* ${channel}\n⏱️ *Duración:* ${duration}\n👁️ *Vistas:* ${views}\n\n⚡ *TECH BOT V1* descargando audio...\n🔧 Probando 15 APIs...`,
-      edit: searchMsg.key
+      text: `✅ *ENLACE OBTENIDO*\n\n📛 ${title}\n🎬 Formato: ${format.toUpperCase()}\n🔊 Calidad: ${finalQuality}${type === 'audio' ? 'kbps' : 'p'}\n📥 Descargando...`,
+      edit: processingMsg.key
     });
     
     await m.react('📥');
     
-    // 🎵 Descargar audio usando la URL encontrada
-    const audioResult = await downloadYoutubeAudio(url);
-    
-    if (!audioResult.success) {
-      cooldowns.delete(userId);
-      await m.react('❌');
-      await conn.sendMessage(m.chat, {
-        text: `❌ *ERROR EN DESCARGA*\n\n${audioResult.error}\n\n⚡ Todas las APIs fallaron. Intenta más tarde.`,
-        edit: searchMsg.key
-      });
-      return;
-    }
-    
-    const { downloadUrl, quality, apiUsed } = audioResult.data;
-    
-    // 🎵 Limpiar nombre del archivo
-    const cleanTitle = title
-      .replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, '')
-      .substring(0, 50)
-      .trim();
-    
-    const fileName = `${cleanTitle}.mp3`;
-    
-    // 🎵 Informar que se está descargando
-    await conn.sendMessage(m.chat, {
-      text: `📥 *DESCARGANDO AUDIO*\n\n🎵 ${title}\n🔊 Calidad: ${quality}\n🔧 API: ${apiUsed}\n⏳ Descargando...`,
-      edit: searchMsg.key
-    });
-    
-    // 🎵 Descargar buffer del audio
-    const audioResponse = await fetch(downloadUrl, {
+    // 🎵 Descargar el archivo
+    const fileResponse = await fetch(downloadUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': UA,
+        'Accept': '*/*',
+        'Referer': 'https://frame.y2meta-uk.com/'
       },
       timeout: 60000
     });
     
-    if (!audioResponse.ok) {
-      throw new Error(`Error HTTP: ${audioResponse.status}`);
+    if (!fileResponse.ok) {
+      throw new Error(`Error HTTP: ${fileResponse.status}`);
     }
     
-    const audioBuffer = await audioResponse.buffer();
+    const fileBuffer = await fileResponse.buffer();
     
-    if (audioBuffer.length === 0) {
-      throw new Error('Audio vacío');
+    if (fileBuffer.length === 0) {
+      throw new Error('Archivo vacío');
     }
     
-    // 🎵 Enviar audio
+    // 🎵 Enviar el archivo según el tipo
     await m.react('✅');
-    await conn.sendMessage(m.chat, {
-      audio: audioBuffer,
-      mimetype: 'audio/mpeg',
-      fileName: fileName,
-      caption: `✅ *AUDIO DESCARGADO*\n\n🎵 ${title}\n🔊 ${quality}\n👤 ${channel}\n⏱️ ${duration}\n🔧 API: ${apiUsed}\n\n⚡ *TECH BOT V1*`,
-      quoted: m
-    });
+    
+    if (type === 'audio') {
+      await conn.sendMessage(m.chat, {
+        audio: fileBuffer,
+        mimetype: 'audio/mpeg',
+        fileName: filename,
+        caption: `✅ *AUDIO DESCARGADO*\n\n📛 ${title}\n🔊 ${finalQuality}kbps\n\n⚡ *TECH BOT V1*`,
+        quoted: m
+      });
+    } else {
+      await conn.sendMessage(m.chat, {
+        video: fileBuffer,
+        mimetype: 'video/mp4',
+        fileName: filename,
+        caption: `✅ *VIDEO DESCARGADO*\n\n📛 ${title}\n🎬 ${finalQuality}p\n\n⚡ *TECH BOT V1*`,
+        quoted: m
+      });
+    }
     
     // 🎵 Limpiar cooldown después de éxito
     setTimeout(() => {
       cooldowns.delete(userId);
     }, COOLDOWN_TIME);
     
-    console.log(`🎵 [PLAY] Audio enviado: ${title} (API: ${apiUsed})`);
+    console.log(`🎵 [PLAY] Archivo enviado: ${title} (${finalQuality}${type === 'audio' ? 'kbps' : 'p'})`);
     
   } catch (error) {
     console.error(`🎵 [PLAY] Error handler:`, error);
@@ -468,17 +305,24 @@ let handler = async (m, { conn, args }) => {
     
     await m.react('💥');
     
-    const errorMsg = error.message.includes('timeout') 
-      ? '⏳ *TIEMPO AGOTADO*\nEl servidor tardó demasiado.'
-      : error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')
-      ? '❌ *SERVIDOR NO DISPONIBLE*\nIntenta más tarde.'
-      : `❌ *ERROR*\n${error.message}`;
+    // 🎵 Mensajes de error específicos
+    const errorMessages = {
+      'timeout': '⏳ *TIEMPO AGOTADO*\nEl servidor tardó demasiado.',
+      'ENOTFOUND': '❌ *SERVIDOR NO DISPONIBLE*\nIntenta más tarde.',
+      'ECONNREFUSED': '❌ *CONEXIÓN RECHAZADA*\nServidor sobrecargado.',
+      'default': `❌ *ERROR*\n${error.message}`
+    };
+    
+    let errorMsg = errorMessages.default;
+    if (error.message.includes('timeout')) errorMsg = errorMessages.timeout;
+    if (error.message.includes('ENOTFOUND')) errorMsg = errorMessages.ENOTFOUND;
+    if (error.message.includes('ECONNREFUSED')) errorMsg = errorMessages.ECONNREFUSED;
     
     await m.reply(errorMsg);
   }
 }
 
-// 🎵 Handler para .ytmp3 (URL directa)
+// 🎵 Handler para .video (descarga solo video)
 let handler2 = async (m, { conn, args }) => {
   const userId = m.sender;
   
@@ -495,7 +339,7 @@ let handler2 = async (m, { conn, args }) => {
   // 🎵 Verificar URL
   if (!args[0]) {
     await m.react('❓');
-    return m.reply(`🎵 *Usa:* .ytmp3 <URL de YouTube>\nEjemplo: .ytmp3 https://youtu.be/JiEW1agPqNY`);
+    return m.reply(`🎬 *Usa:* .video <URL de YouTube> [calidad]\nEjemplo: .video https://youtu.be/abc123 720\nCalidades: 144, 240, 360, 480, 720, 1080`);
   }
   
   let videoUrl = args[0];
@@ -512,103 +356,96 @@ let handler2 = async (m, { conn, args }) => {
     videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
   }
   
+  // 🎵 Obtener calidad
+  let quality = 720; // Calidad por defecto
+  if (args[1]) {
+    const num = parseInt(args[1]);
+    if ([144, 240, 360, 480, 720, 1080, 1440, 2160].includes(num)) {
+      quality = num;
+    }
+  }
+  
   // 🎵 Activar cooldown
   cooldowns.set(userId, Date.now() + COOLDOWN_TIME);
   
   try {
     await m.react('🔍');
-    const processingMsg = await m.reply(`🔍 *PROCESANDO AUDIO*\n\nObteniendo información...\n⚡ *TECH BOT V1* preparando...\n🎵 15 APIs disponibles`);
+    const processingMsg = await m.reply(`🔍 *PROCESANDO VIDEO*\n\nCalidad: ${quality}p\nObteniendo enlace...\n⚡ *TECH BOT V1*`);
     
-    // 🎵 Descargar audio
-    const result = await downloadYoutubeAudio(videoUrl);
+    // 🎵 Obtener enlace de descarga
+    const result = await y2mateDirect(videoUrl, { 
+      type: 'video', 
+      quality: quality,
+      timeout: 60000 
+    });
     
-    if (!result.success) {
+    if (!result.status) {
       cooldowns.delete(userId);
       await m.react('❌');
       await conn.sendMessage(m.chat, {
-        text: `❌ *ERROR EN DESCARGA*\n\n${result.error}\n\n⚡ Intenta con otro video.`,
+        text: `❌ *ERROR EN VIDEO*\n\n${result.error}\n\n⚡ Intenta con otra calidad o más tarde.`,
         edit: processingMsg.key
       });
       return;
     }
     
-    const { title, downloadUrl, quality, apiUsed } = result.data;
+    const { title, url: downloadUrl, filename } = result;
     
-    // 🎵 Limpiar nombre del archivo
-    const cleanTitle = title
-      .replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, '')
-      .substring(0, 50)
-      .trim();
-    
-    const fileName = `${cleanTitle}.mp3`;
-    
-    // 🎵 Informar que se está descargando
+    // 🎵 Descargar video
     await conn.sendMessage(m.chat, {
-      text: `📥 *DESCARGANDO AUDIO*\n\n🎵 ${title}\n🔊 Calidad: ${quality}\n🔧 API: ${apiUsed}\n⏳ Descargando archivo...`,
+      text: `📥 *DESCARGANDO VIDEO*\n\n📛 ${title}\n🎬 ${quality}p\n⏳ Descargando...`,
       edit: processingMsg.key
     });
     
-    // 🎵 Descargar buffer
     await m.react('📥');
-    const audioResponse = await fetch(downloadUrl, {
+    
+    const videoResponse = await fetch(downloadUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': UA,
+        'Accept': '*/*',
+        'Referer': 'https://frame.y2meta-uk.com/'
       },
       timeout: 60000
     });
     
-    if (!audioResponse.ok) {
-      throw new Error(`Error HTTP: ${audioResponse.status}`);
+    if (!videoResponse.ok) {
+      throw new Error(`Error HTTP: ${videoResponse.status}`);
     }
     
-    const audioBuffer = await audioResponse.buffer();
+    const videoBuffer = await videoResponse.buffer();
     
-    if (audioBuffer.length === 0) {
-      throw new Error('Audio vacío');
-    }
-    
-    // 🎵 Enviar audio
+    // 🎵 Enviar video
     await m.react('✅');
     await conn.sendMessage(m.chat, {
-      audio: audioBuffer,
-      mimetype: 'audio/mpeg',
-      fileName: fileName,
-      caption: `✅ *AUDIO DESCARGADO*\n\n🎵 ${title}\n🔊 ${quality}\n🔧 API: ${apiUsed}\n\n⚡ *TECH BOT V1*`,
+      video: videoBuffer,
+      mimetype: 'video/mp4',
+      fileName: filename,
+      caption: `✅ *VIDEO DESCARGADO*\n\n📛 ${title}\n🎬 ${quality}p\n\n⚡ *TECH BOT V1*`,
       quoted: m
     });
     
-    // 🎵 Limpiar cooldown después de éxito
+    // 🎵 Limpiar cooldown
     setTimeout(() => {
       cooldowns.delete(userId);
     }, COOLDOWN_TIME);
     
-    console.log(`🎵 [YTMP3] Audio enviado: ${title} (API: ${apiUsed})`);
-    
   } catch (error) {
-    console.error(`🎵 [YTMP3] Error handler:`, error);
+    console.error(`🎵 [VIDEO] Error:`, error);
     cooldowns.delete(userId);
-    
     await m.react('💥');
-    
-    const errorMsg = error.message.includes('timeout') 
-      ? '⏳ *TIEMPO AGOTADO*\nEl servidor tardó demasiado.'
-      : error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')
-      ? '❌ *SERVIDOR NO DISPONIBLE*\nIntenta más tarde.'
-      : `❌ *ERROR*\n${error.message}`;
-    
-    await m.reply(errorMsg);
+    await m.reply(`❌ *Error en video:* ${error.message}`);
   }
 }
 
-// 🎵 Comandos para .play (búsqueda por nombre)
-handler.help = ['play <nombre de canción>'];
-handler.tags = ['dl', 'audio'];
-handler.command = ['play', 'p', 'musica'];
+// 🎵 Comandos para .play (audio por defecto, puede ser video si se especifica)
+handler.help = ['play <URL o nombre> [opciones]'];
+handler.tags = ['dl', 'audio', 'video'];
+handler.command = ['play', 'p', 'descargar'];
 
-// 🎵 Comandos para .ytmp3 (URL directa)
-handler2.help = ['ytmp3 <URL de YouTube>'];
-handler2.tags = ['dl', 'audio'];
-handler2.command = ['ytmp3', 'yta', 'ytaudio'];
+// 🎵 Comandos para .video (solo video)
+handler2.help = ['video <URL> [calidad]'];
+handler2.tags = ['dl', 'video'];
+handler2.command = ['video', 'vid', 'ytv'];
 
 export default handler;
 export { handler2 };
