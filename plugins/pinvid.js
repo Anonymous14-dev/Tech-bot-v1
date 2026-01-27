@@ -1,5 +1,6 @@
 // 🎬 Pinterest Video Downloader - TECH BOT V1
 // Hecho por Ado :D
+// Versión sin botones - Envío automático
 import axios from "axios";
 import fetch from "node-fetch";
 
@@ -179,7 +180,33 @@ async function searchPinterestVideos(query, maxVideos = 10) {
   }
 }
 
-// 🎬 Handler principal para Pinterest
+async function downloadVideo(url, title) {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.5845.163 Mobile Safari/537.36',
+        'Referer': 'https://www.pinterest.com/'
+      },
+      timeout: 60000
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status}`);
+    }
+    
+    const videoBuffer = await response.buffer();
+    
+    if (videoBuffer.length === 0) {
+      throw new Error('Video vacío');
+    }
+    
+    return videoBuffer;
+  } catch (error) {
+    throw error;
+  }
+}
+
+// 🎬 Handler principal - SIN BOTONES, ENVÍO AUTOMÁTICO
 let handler = async (m, { conn, args }) => {
   const userId = m.sender;
   
@@ -196,7 +223,7 @@ let handler = async (m, { conn, args }) => {
   // 🎬 Verificar búsqueda
   if (!args[0]) {
     await m.react('❓');
-    return m.reply(`🎬 *Usa:* .pinterest <tipo de videos>\n\nEjemplos:\n.pinterest funny cats\n.pinterest cooking recipes\n.pinterest workout videos`);
+    return m.reply(`🎬 *Usa:* .pinvid <tipo de videos>\n\nEjemplos:\n.pinvid funny cats\n.pinvid cooking recipes\n.pinvid workout videos`);
   }
   
   const query = args.join(' ');
@@ -233,198 +260,70 @@ let handler = async (m, { conn, args }) => {
     
     const { videos } = result;
     
-    // 🎬 Mostrar resultados con botones
-    let videoList = `✅ *${result.count} VIDEOS ENCONTRADOS*\n\n🎬 *Búsqueda:* ${query}\n\n`;
-    
-    videos.forEach((video, index) => {
-      videoList += `${index + 1}. ${video.title}\n   ⏱️ ${video.duration} | 👍 ${video.likes} | 🎬 ${video.quality}\n\n`;
-    });
-    
-    videoList += `⚡ *Selecciona un video con los botones:*`;
-    
-    // 🎬 Crear botones para cada video
-    const buttons = [];
-    
-    videos.forEach((video, index) => {
-      buttons.push({
-        buttonId: `.pindl ${video.downloadUrl} ${video.title}`,
-        buttonText: { displayText: `🎬 Video ${index + 1}` },
-        type: 1
-      });
-    });
-    
-    // Botón para ver más opciones
-    buttons.push({
-      buttonId: `.pinall ${query}`,
-      buttonText: { displayText: `📊 Ver todos` },
-      type: 1
-    });
-    
-    // 🎬 Enviar resultados con thumbnail del primer video
-    try {
-      const firstThumbnail = videos[0]?.thumbnail;
-      
-      await conn.sendMessage(
-        m.chat,
-        {
-          image: firstThumbnail ? { url: firstThumbnail } : undefined,
-          caption: videoList,
-          buttons: buttons,
-          footer: "⚡ TECH BOT V1 - Pinterest Downloader",
-          headerType: 4
-        },
-        { quoted: m }
-      );
-      
-      await m.react('✅');
-      
-    } catch (error) {
-      // Si falla la imagen, enviar solo texto
-      await conn.sendMessage(
-        m.chat,
-        {
-          text: videoList,
-          buttons: buttons,
-          footer: "⚡ TECH BOT V1 - Pinterest Downloader",
-          headerType: 1
-        },
-        { quoted: m }
-      );
-      
-      await m.react('✅');
-    }
-    
-  } catch (error) {
-    console.error("🎬 [PINTEREST] Error handler:", error);
-    cooldowns.delete(userId);
-    await m.react('💥');
-    await m.reply(`❌ *Error:* ${error.message}`);
-  }
-}
-
-// 🎬 Handler para descargar video de Pinterest
-let handler2 = async (m, { conn, args }) => {
-  const userId = m.sender;
-  
-  // 🎬 Verificar cooldown
-  if (cooldowns.has(userId)) {
-    const expire = cooldowns.get(userId);
-    const remaining = expire - Date.now();
-    if (remaining > 0) {
-      await m.react('⏳');
-      return m.reply(`⏳ *Espera ${Math.ceil(remaining / 1000)} segundos* antes de otra descarga.`);
-    }
-  }
-  
-  if (!args[0]) {
-    return m.reply('❌ *URL no proporcionada*');
-  }
-  
-  const downloadUrl = args[0];
-  const title = args.slice(1).join(' ') || 'video_pinterest';
-  
-  // 🎬 Activar cooldown
-  cooldowns.set(userId, Date.now() + COOLDOWN_TIME);
-  
-  try {
-    await m.react('📥');
-    const downloadMsg = await m.reply(`📥 *DESCARGANDO VIDEO*\n\nPor favor espera...\n⚡ *TECH BOT V1* descargando...`);
-    
-    // 🎬 Descargar video
-    const response = await fetch(downloadUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.5845.163 Mobile Safari/537.36',
-        'Referer': 'https://www.pinterest.com/'
-      },
-      timeout: 60000
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status}`);
-    }
-    
-    const videoBuffer = await response.buffer();
-    
-    if (videoBuffer.length === 0) {
-      throw new Error('Video vacío');
-    }
-    
-    // 🎬 Limpiar nombre del archivo
-    const cleanTitle = title
-      .replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ' ')
-      .substring(0, 40)
-      .trim();
-    
-    const fileName = `${cleanTitle}.mp4`;
-    
-    // 🎬 Enviar video
-    await m.react('✅');
+    // 🎬 Mostrar resultados encontrados
     await conn.sendMessage(m.chat, {
-      video: videoBuffer,
-      mimetype: 'video/mp4',
-      fileName: fileName,
-      caption: `✅ *VIDEO DE PINTEREST DESCARGADO*\n\n📛 ${cleanTitle}\n🎬 Calidad: HD\n\n⚡ *TECH BOT V1*`,
-      quoted: m
+      text: `✅ *${result.count} VIDEOS ENCONTRADOS*\n\n🎬 *Búsqueda:* ${query}\n⚡ *TECH BOT V1*\n\n📥 *Descargando videos...*`,
+      edit: searchMsg.key
     });
     
-    // 🎬 Limpiar cooldown
+    // 🎬 DESCARGAR Y ENVIAR CADA VIDEO AUTOMÁTICAMENTE (SIN BOTONES)
+    for (let i = 0; i < Math.min(videos.length, 3); i++) { // Máximo 3 videos
+      const video = videos[i];
+      
+      try {
+        // Notificar que se está descargando
+        await m.reply(`📥 *Descargando video ${i + 1} de ${Math.min(videos.length, 3)}*\n🎬 ${video.title.substring(0, 50)}...`);
+        
+        // Descargar video
+        const videoBuffer = await downloadVideo(video.downloadUrl, video.title);
+        
+        // Limpiar nombre del archivo
+        const cleanTitle = video.title
+          .replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ' ')
+          .substring(0, 40)
+          .trim();
+        
+        const fileName = `${cleanTitle}.mp4`;
+        
+        // Enviar video automáticamente
+        await conn.sendMessage(m.chat, {
+          video: videoBuffer,
+          mimetype: 'video/mp4',
+          fileName: fileName,
+          caption: `🎬 *VIDEO ${i + 1}*\n\n📛 ${cleanTitle}\n⏱️ ${video.duration} | 👍 ${video.likes}\n🎬 Calidad: ${video.quality}\n\n⚡ *TECH BOT V1*`
+        });
+        
+        await m.react('✅');
+        
+        // Pequeña pausa entre descargas
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+      } catch (error) {
+        console.error(`🎬 [PINVID] Error video ${i + 1}:`, error.message);
+        await m.reply(`❌ *Error con video ${i + 1}:* ${error.message}`);
+        await m.react('⚠️');
+      }
+    }
+    
+    // 🎬 Mensaje final
+    await m.reply(`✅ *DESCARGA COMPLETADA*\n\n🎬 Se descargaron ${Math.min(videos.length, 3)} videos de Pinterest\n🔍 Búsqueda: "${query}"\n\n⚡ *TECH BOT V1* - Descarga automática`);
+    
+    // 🎬 Limpiar cooldown después de un tiempo
     setTimeout(() => {
       cooldowns.delete(userId);
     }, COOLDOWN_TIME);
     
   } catch (error) {
-    console.error("🎬 [PINDL] Error:", error);
+    console.error("🎬 [PINVID] Error handler:", error);
     cooldowns.delete(userId);
-    await m.react('❌');
-    await m.reply(`❌ *Error en descarga:* ${error.message}`);
-  }
-}
-
-// 🎬 Handler para ver todos los videos
-let handler3 = async (m, { conn, args }) => {
-  if (!args[0]) {
-    return m.reply('❌ *Término de búsqueda no proporcionado*');
-  }
-  
-  try {
-    const query = args.join(' ');
-    await m.react('🔍');
-    
-    const result = await searchPinterestVideos(query, 15); // Más videos
-    
-    if (!result.success || result.count === 0) {
-      return m.reply(`❌ *No se encontraron videos para:* "${query}"`);
-    }
-    
-    let videoList = `📊 *${result.count} VIDEOS ENCONTRADOS*\n\n🎬 *Búsqueda:* ${query}\n\n`;
-    
-    result.videos.forEach((video, index) => {
-      videoList += `*${index + 1}.* ${video.title}\n`;
-      videoList += `   ⏱️ ${video.duration} | 👍 ${video.likes} | 🎬 ${video.quality}\n`;
-      videoList += `   🔗 ${video.downloadUrl.substring(0, 50)}...\n\n`;
-    });
-    
-    videoList += `⚡ *Usa:* .pindl <url> <titulo> para descargar`;
-    
-    await m.reply(videoList);
-    
-  } catch (error) {
-    await m.reply(`❌ *Error:* ${error.message}`);
+    await m.react('💥');
+    await m.reply(`❌ *Error general:* ${error.message}`);
   }
 }
 
 // 🎬 Comandos
 handler.help = ['pinvid <término de búsqueda>'];
 handler.tags = ['dl', 'video', 'pinterest'];
-handler.command = ['pinvid', 'pinsearch', 'pins'];
-
-handler2.help = ['pindl <url> <titulo>'];
-handler2.tags = ['dl', 'video'];
-handler2.command = ['pindl', 'pindownload', 'pinvideo'];
-
-handler3.help = ['pinvid <término>'];
-handler3.tags = ['dl', 'search'];
-handler3.command = ['pinall', 'pinlist'];
+handler.command = ['pinvid', 'pinvideo', 'pindl'];
 
 export default handler;
-export { handler2, handler3 };
