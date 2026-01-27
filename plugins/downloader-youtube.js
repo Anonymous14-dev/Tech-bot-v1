@@ -1,166 +1,59 @@
-// 🎬 TECH BOT V1 - Descargador de Video YouTube
-// Hecho por Ado :D
-import axios from "axios";
-import fetch from "node-fetch";
+import axios from 'axios';
 
-// 🎬 Cooldown system
-const cooldowns = new Map();
-const COOLDOWN_TIME = 30 * 1000; // 30 segundos cooldown
-
-const UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Mobile Safari/537.36";
-
-function extractYouTubeId(input) {
-  const s = String(input || "").trim();
-  if (!s) return null;
-
-  const m1 = s.match(/(?:v=|\/shorts\/|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-  if (m1?.[1]) return m1[1];
-
-  const m2 = s.match(/^[A-Za-z0-9_-]{11}$/);
-  if (m2?.[0]) return m2[0];
-
-  return null;
-}
-
-function baseHeaders(ref) {
-  return {
-    "User-Agent": UA,
-    Accept: "application/json, text/plain, */*",
-    "Accept-Language": "es-US,es-419;q=0.9,es;q=0.8",
-    Origin: ref,
-    Referer: `${ref}/`,
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "cross-site",
-    "sec-ch-ua": '"Chromium";v="123", "Not(A:Brand";v="24", "Google Chrome";v="123"',
-    "sec-ch-ua-mobile": "?1",
-    "sec-ch-ua-platform": '"Android"'
-  };
-}
-
-async function getSanityKey(timeout = 20000) {
-  const ref = "https://frame.y2meta-uk.com";
-
-  const res = await axios.get("https://cnv.cx/v2/sanity/key", {
-    timeout,
-    headers: { ...baseHeaders(ref), "Content-Type": "application/json" },
-    validateStatus: () => true
-  });
-
-  if (res.status !== 200) throw new Error(`SANITY_KEY_HTTP_${res.status}`);
-
-  const key = res?.data?.key;
-  if (!key) throw new Error("SANITY_KEY_MISSING");
-
-  return { key, ref };
-}
-
-function toForm(data) {
-  const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(data)) p.set(k, String(v));
-  return p;
-}
-
-function normalizeObj(data) {
-  if (data && typeof data === "object") return data;
-  if (typeof data === "string") {
-    try {
-      return JSON.parse(data);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
-// 🎬 Función principal para descargar video de YouTube
-async function downloadYouTubeVideo(url, quality = 720) {
+// 🎬 Función para descargar videos de YouTube
+async function ytdl(url) {
   try {
-    const videoId = extractYouTubeId(url);
-    if (!videoId) {
-      return { status: false, error: "URL de YouTube inválida" };
-    }
+    const res = await axios.post('https://api.vidssave.com/api/contentsite_api/media/parse',
+      new URLSearchParams({
+        auth: '20250901majwlqo',
+        domain: 'api-ak.vidssave.com',
+        origin: 'cache',
+        link: url
+      }).toString(),
+      {
+        headers: {
+          'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36',
+          'content-type': 'application/x-www-form-urlencoded',
+          origin: 'https://vidssave.com',
+          referer: 'https://vidssave.com/'
+        },
+        timeout: 30000 // 30 segundos timeout
+      }
+    );
 
-    // Validar calidad
-    const allowedQualities = [144, 240, 360, 480, 720, 1080, 1440, 2160];
-    const finalQuality = allowedQualities.includes(quality) ? quality : 720;
+    const { title, thumbnail, duration, resources } = res.data.data;
 
-    const timeout = 60000;
-    const { key, ref } = await getSanityKey(20000);
-
-    const payload = {
-      link: `https://youtu.be/${videoId}`,
-      format: "mp4",
-      audioBitrate: 128,
-      videoQuality: finalQuality,
-      filenameStyle: "pretty",
-      vCodec: "h264"
-    };
-
-    const res = await axios.post("https://cnv.cx/v2/converter", toForm(payload), {
-      timeout,
-      headers: {
-        ...baseHeaders(ref),
-        Accept: "*/*",
-        "Content-Type": "application/x-www-form-urlencoded",
-        key
-      },
-      validateStatus: () => true
-    });
-
-    if (res.status !== 200) {
-      return {
-        status: false,
-        error: `Error del servidor: ${res.status}`
-      };
-    }
-
-    const obj = normalizeObj(res.data);
-    const direct = obj?.url;
-    const title = obj?.filename || `video_${videoId}`;
-
-    if (!direct) {
-      return {
-        status: false,
-        error: "No se pudo obtener el enlace de descarga"
-      };
-    }
-
-    return { 
-      status: true, 
-      videoId, 
-      quality: finalQuality, 
-      url: direct,
-      title: title,
-      filename: `${title.replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, '_').substring(0, 50)}.mp4`
-    };
-  } catch (error) {
-    console.error("🎬 [YOUTUBE] Error:", error.message);
     return {
-      status: false,
-      error: error.message || "Error desconocido"
+      success: true,
+      data: {
+        title,
+        thumbnail,
+        duration,
+        formats: resources.map(r => ({
+          type: r.type,
+          quality: r.quality,
+          format: r.format,
+          size: r.size,
+          url: r.download_url
+        }))
+      }
+    };
+    
+  } catch (error) {
+    console.error('🎬 [YTDL] Error:', error.message);
+    return {
+      success: false,
+      error: error.message || 'Error desconocido'
     };
   }
 }
 
 // 🎬 Handler principal para descargar video
 let handler = async (m, { conn, args }) => {
-  const userId = m.sender;
-  
-  // 🎬 Verificar cooldown
-  if (cooldowns.has(userId)) {
-    const expire = cooldowns.get(userId);
-    const remaining = expire - Date.now();
-    if (remaining > 0) {
-      await m.react('⏳');
-      return m.reply(`⏳ *Espera ${Math.ceil(remaining / 1000)} segundos* antes de otra descarga.`);
-    }
-  }
-  
   // 🎬 Verificar URL
   if (!args[0]) {
     await m.react('❓');
-    return m.reply(`🎬 *Usa:* .video <URL de YouTube> [calidad]\n\nEjemplos:\n.video https://youtu.be/abc123\n.video https://youtu.be/abc123 1080\n\nCalidades disponibles: 144, 240, 360, 480, 720, 1080`);
+    return m.reply(`🎬 *Usa:* .ytdl <URL de YouTube>\nEjemplo: .ytdl https://youtu.be/gvunApwKIiY`);
   }
   
   let videoUrl = args[0];
@@ -177,100 +70,261 @@ let handler = async (m, { conn, args }) => {
     videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
   }
   
-  // 🎬 Obtener calidad
-  let quality = 720; // Calidad por defecto
-  if (args[1]) {
-    const num = parseInt(args[1]);
-    if ([144, 240, 360, 480, 720, 1080, 1440, 2160].includes(num)) {
-      quality = num;
-    }
-  }
-  
-  // 🎬 Activar cooldown
-  cooldowns.set(userId, Date.now() + COOLDOWN_TIME);
-  
   try {
     await m.react('🔍');
-    const processingMsg = await m.reply(`🔍 *PROCESANDO VIDEO*\n\n🎬 Calidad: ${quality}p\n⚡ Obteniendo información...\n*TECH BOT V1* trabajando...`);
+    const processingMsg = await m.reply(`🔍 *ANALIZANDO VIDEO*\n\nObteniendo información...\n⚡ *TECH BOT V1* procesando...`);
     
-    // 🎬 Obtener enlace de descarga
-    const result = await downloadYouTubeVideo(videoUrl, quality);
+    // 🎬 Obtener información del video
+    const result = await ytdl(videoUrl);
     
-    if (!result.status) {
-      cooldowns.delete(userId);
+    if (!result.success) {
       await m.react('❌');
       await conn.sendMessage(m.chat, {
-        text: `❌ *ERROR EN VIDEO*\n\n${result.error}\n\n⚡ Intenta con otra calidad o más tarde.`,
+        text: `❌ *ERROR EN ANÁLISIS*\n\n${result.error}\n\n⚡ Intenta con otro video.`,
         edit: processingMsg.key
       });
       return;
     }
     
-    const { title, url: downloadUrl, filename, quality: finalQuality } = result;
+    const { title, thumbnail, duration, formats } = result.data;
     
-    // 🎬 Mostrar información
-    await conn.sendMessage(m.chat, {
-      text: `✅ *VIDEO LISTO*\n\n📛 ${title}\n🎬 Calidad: ${finalQuality}p\n📥 Descargando...`,
-      edit: processingMsg.key
-    });
+    // 🎬 Separar formatos de video y audio
+    const videoFormats = formats.filter(f => f.type === 'video');
+    const audioFormats = formats.filter(f => f.type === 'audio');
     
-    await m.react('📥');
+    // 🎬 Encontrar el mejor video (mayor calidad)
+    const bestVideo = videoFormats.sort((a, b) => {
+      const qualA = parseInt(a.quality) || 0;
+      const qualB = parseInt(b.quality) || 0;
+      return qualB - qualA;
+    })[0];
     
-    // 🎬 Descargar video
-    const videoResponse = await fetch(downloadUrl, {
-      headers: {
-        'User-Agent': UA,
-        'Accept': '*/*',
-        'Referer': 'https://frame.y2meta-uk.com/'
-      },
-      timeout: 60000
-    });
+    // 🎬 Encontrar el mejor audio (mayor calidad)
+    const bestAudio = audioFormats.sort((a, b) => {
+      const qualA = parseInt(a.quality) || 0;
+      const qualB = parseInt(b.quality) || 0;
+      return qualB - qualA;
+    })[0];
     
-    if (!videoResponse.ok) {
-      throw new Error(`Error HTTP: ${videoResponse.status}`);
+    if (!bestVideo) {
+      await m.react('❌');
+      await conn.sendMessage(m.chat, {
+        text: `❌ *VIDEO NO DISPONIBLE*\n\nNo se encontraron formatos de video para descargar.`,
+        edit: processingMsg.key
+      });
+      return;
     }
     
-    const videoBuffer = await videoResponse.buffer();
+    // 🎬 Mostrar información del video
+    const videoInfo = `✅ *INFORMACIÓN DEL VIDEO*\n\n📛 *Título:* ${title}\n⏱️ *Duración:* ${duration}\n🎬 *Calidad:* ${bestVideo.quality}\n📊 *Tamaño:* ${bestVideo.size}\n\n⚡ *Selecciona formato:*`;
     
-    if (videoBuffer.length === 0) {
-      throw new Error('Video vacío');
+    // 🎬 Botones para seleccionar formato
+    const buttons = [];
+    
+    // Botón para descargar video
+    if (bestVideo) {
+      buttons.push({
+        buttonId: `.download ${bestVideo.url} video ${title}`,
+        buttonText: { displayText: `🎬 Video (${bestVideo.quality})` },
+        type: 1
+      });
     }
     
-    // 🎬 Enviar video
-    await m.react('✅');
-    await conn.sendMessage(m.chat, {
-      video: videoBuffer,
-      mimetype: 'video/mp4',
-      fileName: filename,
-      caption: `✅ *VIDEO DESCARGADO*\n\n📛 ${title}\n🎬 ${finalQuality}p\n\n⚡ *TECH BOT V1*`,
-      quoted: m
-    });
+    // Botón para descargar audio
+    if (bestAudio) {
+      buttons.push({
+        buttonId: `.download ${bestAudio.url} audio ${title}`,
+        buttonText: { displayText: `🎵 Audio (${bestAudio.quality})` },
+        type: 1
+      });
+    }
     
-    // 🎬 Limpiar cooldown
-    setTimeout(() => {
-      cooldowns.delete(userId);
-    }, COOLDOWN_TIME);
+    // Botón para ver más formatos
+    if (videoFormats.length > 1 || audioFormats.length > 1) {
+      buttons.push({
+        buttonId: `.formatos ${videoUrl}`,
+        buttonText: { displayText: `📊 Más formatos` },
+        type: 1
+      });
+    }
     
-    console.log(`🎬 [VIDEO] Video enviado: ${title} (${finalQuality}p)`);
+    // 🎬 Enviar información con thumbnail
+    try {
+      await conn.sendMessage(
+        m.chat,
+        {
+          image: { url: thumbnail },
+          caption: videoInfo,
+          buttons: buttons,
+          footer: "⚡ TECH BOT V1 - Descargas YouTube",
+          headerType: 4
+        },
+        { quoted: m }
+      );
+      
+      await m.react('✅');
+      
+    } catch (error) {
+      // Si falla la imagen, enviar solo texto
+      await conn.sendMessage(
+        m.chat,
+        {
+          text: videoInfo,
+          buttons: buttons,
+          footer: "⚡ TECH BOT V1 - Descargas YouTube",
+          headerType: 1
+        },
+        { quoted: m }
+      );
+      
+      await m.react('✅');
+    }
     
   } catch (error) {
-    console.error(`🎬 [VIDEO] Error:`, error);
-    cooldowns.delete(userId);
+    console.error('🎬 [YTDL] Error handler:', error);
     await m.react('💥');
+    await m.reply(`❌ *Error:* ${error.message}`);
+  }
+}
+
+// 🎬 Handler para descargar el archivo
+let handler2 = async (m, { conn, args }) => {
+  if (!args[0]) {
+    return m.reply('❌ *URL no proporcionada*');
+  }
+  
+  try {
+    await m.react('📥');
+    const downloadMsg = await m.reply(`📥 *DESCARGANDO ARCHIVO*\n\nPor favor espera...\n⚡ *TECH BOT V1* descargando...`);
     
-    const errorMsg = error.message.includes('timeout') 
-      ? '⏳ *TIEMPO AGOTADO*\nEl servidor tardó demasiado.'
-      : error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')
-      ? '❌ *SERVIDOR NO DISPONIBLE*\nIntenta más tarde.'
-      : `❌ *ERROR*\n${error.message}`;
+    const downloadUrl = args[0];
+    const type = args[1] || 'video';
+    const title = args.slice(2).join(' ') || 'video_descargado';
     
-    await m.reply(errorMsg);
+    // 🎬 Descargar archivo
+    const response = await axios({
+      method: 'GET',
+      url: downloadUrl,
+      responseType: 'arraybuffer',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36'
+      },
+      timeout: 120000 // 2 minutos timeout
+    });
+    
+    const fileBuffer = Buffer.from(response.data);
+    
+    if (fileBuffer.length === 0) {
+      throw new Error('Archivo vacío');
+    }
+    
+    // 🎬 Limpiar nombre del archivo
+    const cleanTitle = title
+      .replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/gi, ' ')
+      .substring(0, 50)
+      .trim();
+    
+    const extension = type === 'audio' ? 'mp3' : 'mp4';
+    const fileName = `${cleanTitle}.${extension}`;
+    const mimeType = type === 'audio' ? 'audio/mpeg' : 'video/mp4';
+    
+    // 🎬 Enviar archivo
+    await m.react('✅');
+    
+    if (type === 'audio') {
+      await conn.sendMessage(m.chat, {
+        audio: fileBuffer,
+        mimetype: mimeType,
+        fileName: fileName,
+        caption: `✅ *AUDIO DESCARGADO*\n\n📛 ${cleanTitle}\n🎵 Calidad: ${args[1] || 'alta'}\n\n⚡ *TECH BOT V1*`,
+        quoted: m
+      });
+    } else {
+      await conn.sendMessage(m.chat, {
+        video: fileBuffer,
+        mimetype: mimeType,
+        fileName: fileName,
+        caption: `✅ *VIDEO DESCARGADO*\n\n📛 ${cleanTitle}\n🎬 Calidad: ${args[1] || 'alta'}\n\n⚡ *TECH BOT V1*`,
+        quoted: m
+      });
+    }
+    
+    // 🎬 Eliminar mensaje de progreso
+    try {
+      await conn.sendMessage(m.chat, {
+        delete: {
+          remoteJid: m.chat,
+          fromMe: true,
+          id: downloadMsg.key.id,
+          participant: downloadMsg.key.participant
+        }
+      });
+    } catch {}
+    
+  } catch (error) {
+    console.error('🎬 [DOWNLOAD] Error:', error);
+    await m.react('❌');
+    await m.reply(`❌ *Error en descarga:* ${error.message}`);
+  }
+}
+
+// 🎬 Handler para ver todos los formatos
+let handler3 = async (m, { conn, args }) => {
+  if (!args[0]) {
+    return m.reply('❌ *URL no proporcionada*');
+  }
+  
+  try {
+    const result = await ytdl(args[0]);
+    
+    if (!result.success) {
+      return m.reply(`❌ *Error:* ${result.error}`);
+    }
+    
+    const { title, formats } = result.data;
+    
+    // 🎬 Separar formatos
+    const videoFormats = formats.filter(f => f.type === 'video');
+    const audioFormats = formats.filter(f => f.type === 'audio');
+    
+    let message = `📊 *FORMATOS DISPONIBLES*\n\n📛 *Título:* ${title}\n\n`;
+    
+    if (videoFormats.length > 0) {
+      message += `🎬 *VIDEOS:*\n`;
+      videoFormats.forEach((f, i) => {
+        message += `${i + 1}. ${f.quality} - ${f.format} - ${f.size}\n`;
+      });
+      message += '\n';
+    }
+    
+    if (audioFormats.length > 0) {
+      message += `🎵 *AUDIOS:*\n`;
+      audioFormats.forEach((f, i) => {
+        message += `${i + 1}. ${f.quality} - ${f.format} - ${f.size}\n`;
+      });
+    }
+    
+    message += `\n⚡ *Usa:* .download <url> <tipo> <titulo>`;
+    
+    await m.reply(message);
+    
+  } catch (error) {
+    await m.reply(`❌ *Error:* ${error.message}`);
   }
 }
 
 // 🎬 Comandos
-handler.help = ['ytmp4 <URL> [calidad]'];
-handler.tags = ['dl', 'video'];
-handler.command = ['ytmp4', 'playvid', 'ytv', 'videodl'];
+handler.help = ['ytdl <URL de YouTube>'];
+handler.tags = ['dl', 'video', 'audio'];
+handler.command = ['ytdl', 'youtubedl', 'ytdownload'];
+
+handler2.help = ['ytmp4 <url> <tipo> <titulo>'];
+handler2.tags = ['dl'];
+handler2.command = ['ytmp4', 'descargar'];
+
+handler3.help = ['formatos <URL>'];
+handler3.tags = ['dl'];
+handler3.command = ['formatos', 'formatlist'];
 
 export default handler;
+export { handler2, handler3 };
