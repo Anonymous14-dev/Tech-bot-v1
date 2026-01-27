@@ -5,7 +5,7 @@ var handler = async (m, { conn }) => {
 🤖 *¿QUIERES CONTACTAR A MI CREADOR?* 🤖
 
 👤 *nombre*  *WILKER OFC*
-📞 *Numero:* +5492644893953
+📞 *Numero:* +584125877491
 🔔 *Lenguajes* Node.js Python.py
 
 💫 *NOTA IMPORTANTE:*
