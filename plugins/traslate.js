@@ -1,153 +1,142 @@
-import { existsSync, readFileSync } from 'fs'
-import translate from '@vitalets/google-translate-api'
+import axios from 'axios';
+import qs from 'qs';
 
-var handler = async (m, { conn, text, quoted }) => {
-  
-  if (m.text.startsWith('.traslate')) {
+const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+async function googleTranslate(text, targetLang = 'es', sourceLang = 'auto') {
+    const rpcId = 'MkEWBc';
+    const url = 'https://translate.google.com/_/TranslateWebserverUi/data/batchexecute?rpcids=' + rpcId + '&f.sid=-4434000341074907770&bl=boq_translate-webserver_20260116.05_p1&hl=es&soc-app=1&soc-platform=1&soc-device=1&_reqid=168167&rt=c';
+
+    const rpcPayload = [
+        [
+            [
+                rpcId, 
+                JSON.stringify([[text, sourceLang, targetLang, true], [null]]), 
+                null, 
+                "generic"
+            ]
+        ]
+    ];
+
+    const data = qs.stringify({
+        'f.req': JSON.stringify(rpcPayload)
+    });
+
     try {
-      // Obtener el idioma objetivo y el texto
-      const args = text.trim().split(' ')
-      
-      if (args.length < 2) {
-        m.react('❓')
-        return await conn.reply(m.chat,
-          `🌍 *TRADUCTOR MULTI-IDIOMA* 🌍\n\n` +
-          `*Uso:* .traslate [idioma] (responde a un mensaje)\n` +
-          `*Uso 2:* .traslate [idioma] [texto]\n\n` +
-          `*Idiomas disponibles:*\n` +
-          `• esp / es - Español\n` +
-          `• ing / en - Inglés\n` +
-          `• ch / zh - Chino\n` +
-          `• arab / ar - Árabe\n` +
-          `• fr - Francés\n` +
-          `• pt - Portugués\n` +
-          `• ru - Ruso\n` +
-          `• ja - Japonés\n` +
-          `• de - Alemán\n` +
-          `• it - Italiano\n\n` +
-          `*Ejemplos:*\n` +
-          `• .traslate esp hello (traduce hello a español)\n` +
-          `• .traslate ing hola mundo (traduce a inglés)\n` +
-          `• Responde a un mensaje con .traslate ch`,
-          m
-        )
-      }
-      
-      const targetLang = args[0].toLowerCase()
-      let textToTranslate = ''
-      
-      // Mapear códigos de idioma
-      const langMap = {
-        'esp': 'es', 'es': 'es', 'español': 'es',
-        'ing': 'en', 'en': 'en', 'english': 'en', 'ingles': 'en',
-        'ch': 'zh-CN', 'zh': 'zh-CN', 'chino': 'zh-CN', 'chinese': 'zh-CN',
-        'arab': 'ar', 'ar': 'ar', 'arabe': 'ar', 'arabic': 'ar',
-        'fr': 'fr', 'francés': 'fr', 'french': 'fr',
-        'pt': 'pt', 'portugués': 'pt', 'portuguese': 'pt',
-        'ru': 'ru', 'ruso': 'ru', 'russian': 'ru',
-        'ja': 'ja', 'japonés': 'ja', 'japanese': 'ja',
-        'de': 'de', 'alemán': 'de', 'german': 'de',
-        'it': 'it', 'italiano': 'it', 'italian': 'it'
-      }
-      
-      const langCode = langMap[targetLang]
-      if (!langCode) {
-        m.react('❌')
-        return await conn.reply(m.chat,
-          `❌ *Idioma no válido*\n\n` +
-          `El idioma "${targetLang}" no está soportado.\n` +
-          `Usa .traslate para ver la lista de idiomas disponibles.`,
-          m
-        )
-      }
-      
-      // Obtener texto a traducir
-      if (args.length > 1 && !quoted) {
-        // Texto directamente en el comando
-        textToTranslate = args.slice(1).join(' ')
-      } else if (quoted && quoted.text) {
-        // Texto del mensaje respondido
-        textToTranslate = quoted.text
-      } else {
-        m.react('❓')
-        return await conn.reply(m.chat,
-          `❓ *No hay texto para traducir*\n\n` +
-          `Responde a un mensaje o escribe el texto después del idioma.\n` +
-          `Ejemplo: .traslate esp hello world`,
-          m
-        )
-      }
-      
-      if (textToTranslate.length > 3000) {
-        m.react('⚠️')
-        return await conn.reply(m.chat,
-          `⚠️ *Texto demasiado largo*\n\n` +
-          `El texto excede el límite de 3000 caracteres.\n` +
-          `Divide el texto en partes más pequeñas.`,
-          m
-        )
-      }
-      
-      // Enviar mensaje inicial
-      m.react('🔄')
-      const processingMsg = await conn.reply(m.chat,
-        `🔄 *Traduciendo...*\n\n` +
-        `📝 *Texto:* ${textToTranslate.substring(0, 100)}${textToTranslate.length > 100 ? '...' : ''}\n` +
-        `🌍 *Idioma destino:* ${targetLang.toUpperCase()}`,
-        m
-      )
-      
-      // Realizar la traducción
-      const translation = await translate(textToTranslate, { to: langCode })
-      
-      // Nombre del idioma destino
-      const langNames = {
-        'es': 'Español 🇪🇸',
-        'en': 'Inglés 🇺🇸',
-        'zh-CN': 'Chino 🇨🇳',
-        'ar': 'Árabe 🇸🇦',
-        'fr': 'Francés 🇫🇷',
-        'pt': 'Portugués 🇵🇹',
-        'ru': 'Ruso 🇷🇺',
-        'ja': 'Japonés 🇯🇵',
-        'de': 'Alemán 🇩🇪',
-        'it': 'Italiano 🇮🇹'
-      }
-      
-      // Editar el mensaje con la traducción
-      const translationMessage = `🌐 *TRADUCCIÓN COMPLETADA* 🌐\n\n` +
-        `📝 *Texto original:*\n${textToTranslate}\n\n` +
-        `🔤 *Traducción (${langNames[langCode] || targetLang.toUpperCase()}):*\n${translation.text}\n\n` +
-        `_✨ Traducido por Tech bot v1_`
-      
-      // Editar el mensaje en lugar de enviar uno nuevo
-      await conn.sendMessage(m.chat, {
-        text: translationMessage,
-        edit: processingMsg.key
-      })
-      
-      m.react('✅')
-      
+        const response = await axios.post(url, data, {
+            headers: {
+                'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                'user-agent': ua,
+                'origin': 'https://translate.google.com',
+                'referer': 'https://translate.google.com/',
+                'x-same-domain': '1'
+            }
+        });
+
+        let rawData = response.data;
+        if (rawData.startsWith(")]}'")) {
+            rawData = rawData.substring(4);
+        }
+        
+        const lines = rawData.split('\n');
+        let json = null;
+        
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('[[') && trimmed.endsWith(']]')) {
+                try {
+                    const potentialJson = JSON.parse(trimmed);
+                    if (potentialJson && Array.isArray(potentialJson) && potentialJson[0] && potentialJson[0][1] === 'MkEWBc') {
+                        json = potentialJson;
+                        break;
+                    }
+                } catch (e) {
+                }
+            } else if (trimmed.startsWith('[[') && !trimmed.endsWith(']]')) {
+                 try {
+                 } catch (e) {}
+            }
+        }
+        
+        if (!json) {
+             const jsonStartIndex = rawData.indexOf('[[');
+             if (jsonStartIndex !== -1) {
+                 let jsonString = rawData.substring(jsonStartIndex);
+                 let balance = 0;
+                 let endIndex = -1;
+                 for (let i = 0; i < jsonString.length; i++) {
+                     if (jsonString[i] === '[') balance++;
+                     else if (jsonString[i] === ']') balance--;
+                     
+                     if (balance === 0) {
+                         endIndex = i + 1;
+                         break;
+                     }
+                 }
+                 
+                 if (endIndex !== -1) {
+                    json = JSON.parse(jsonString.substring(0, endIndex));
+                 }
+             }
+        }
+
+        if (json && json[0] && json[0][2]) {
+            const innerData = JSON.parse(json[0][2]);
+            if (innerData && innerData[1] && innerData[1][0] && innerData[1][0][0] && innerData[1][0][0][5]) {
+                 const translation = innerData[1][0][0][5].map(t => t[0]).join('');
+                 return {
+                     translation: translation,
+                     detectedLanguage: innerData[2]
+                 };
+            } else {
+                 console.log("Unexpected inner structure:", JSON.stringify(innerData, null, 2));
+                 return null;
+            }
+        }
+        
     } catch (error) {
-      console.error('Error en traducción:', error)
-      m.react('❌')
-      await conn.reply(m.chat,
-        `❌ *Error en la traducción*\n\n` +
-        `Ocurrió un error al traducir el texto.\n` +
-        `Posibles causas:\n` +
-        `• Texto muy largo\n` +
-        `• Idioma no soportado\n` +
-        `• Error de conexión\n\n` +
-        `Intenta nuevamente.`,
-        m
-      )
+        console.error("Error scraping Google Translate:", error);
+        return null;
     }
-    return
-  }
 }
 
-handler.help = ['traslate <idioma> <texto>', 'traslate <idioma> (responder)']
-handler.tags = ['premium.json']
-handler.command = ['traslate', 'traducir', 'translate', 'trad']
+let handler = async (m, { args, usedPrefix, command }) => {
+    let lang = 'es'
+    let text = ''
+    
+    if (m.quoted && m.quoted.text) {
+        if (args.length >= 1 && /^[a-z]{2,5}(-[a-z]{2,5})?$/i.test(args[0])) {
+            lang = args[0].toLowerCase()
+        }
+        text = m.quoted.text
+    } else {
+        if (args.length >= 2 && /^[a-z]{2,5}(-[a-z]{2,5})?$/i.test(args[0])) {
+            lang = args[0].toLowerCase()
+            text = args.slice(1).join(' ')
+        } else if (args.length >= 1) {
+            text = args.join(' ')
+        } else {
+             throw `*⚠️ ¿Qué quieres traducir?*\n\n*Ejemplo:*\n${usedPrefix + command} en Hola mundo\n${usedPrefix + command} es Hello world\n\n*Uso:*\n${usedPrefix + command} <lang> <texto>\n${usedPrefix + command} <texto> (a español)\nO responde a un mensaje con ${usedPrefix + command}`
+        }
+    }
+
+    if (!text) throw `*⚠️ Texto vacío*`
+
+    try {
+        const result = await googleTranslate(text, lang)
+        if (result && result.translation) {
+            await m.reply(result.translation)
+            m.react('✅')
+        } else {
+            throw 'Error al traducir.'
+        }
+    } catch (e) {
+        throw e
+    }
+}
+
+handler.help = ['translate', 'tr']
+handler.tags = ['tools']
+handler.command = /^(tr|translate|traducir|trad)$/i
 
 export default handler
