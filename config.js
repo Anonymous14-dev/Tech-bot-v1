@@ -4,15 +4,15 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 
 global.owner = [
-  ['5492644893953', 'WILKER OFC', true],
-  ['5492645746772', 'damian yt', true],
+  ['584125877491', 'Anonymous', true],
+  ['5492644893953', 'WILKER', true],
   ['5491151545427', 'ghostdev.js', true],
   ['114847912059070', 'Yo Soy Yo', true],
   ['267950527389763', 'Juan Host', true],
   ['573134811343', 'Juan Host', true]
 ]
 
-global.mods = []
+global.mods = [584125877491]
 
 // 📌 Ruta de tu archivo premium.json
 const premPath = "./json/premium.json"
