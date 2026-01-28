@@ -1,10 +1,9 @@
 import fetch from 'node-fetch'
 import FormData from 'form-data'
 
-// NEW: Uguu upload function (replaces Catbox)
+// Función para subir a Uguu
 async function uploadToUguu(buffer) {
   const form = new FormData()
-  // Uguu uses 'files[]' as the form field name for file uploads[citation:2]
   form.append('files[]', buffer, 'image.jpg')
 
   const res = await fetch('https://uguu.se/upload.php', {
@@ -15,22 +14,10 @@ async function uploadToUguu(buffer) {
   if (!res.ok) throw new Error(`Error uploading to Uguu: ${res.status}`)
 
   const data = await res.json()
-  // Uguu returns an array of uploaded files[citation:2]
   if (!data.files || !data.files[0]) throw new Error('Uguu did not return a valid URL')
 
   return data.files[0].url
 }
-
-// OLD: Original Catbox function (kept for reference, now unused)
-// async function uploadImage(buffer) {
-//   const form = new FormData()
-//   form.append('fileToUpload', buffer, 'image.jpg')
-//   form.append('reqtype', 'fileupload')
-// 
-//   const res = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form })
-//   if (!res.ok) throw new Error('Error al subir la imagen')
-//   return await res.text()
-// }
 
 let handler = async (m, { conn, usedPrefix, command }) => {
   try {
@@ -58,19 +45,54 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     let img = await q.download?.()
     if (!img) throw new Error('No pude descargar la imagen.')
 
-    // CHANGED: Now uses Uguu instead of Catbox
+    // Subir imagen a Uguu primero
     let uploadedUrl = await uploadToUguu(img)
 
-    const api = `https://api-adonix.ultraplus.click/canvas/hd?apikey=WilkerKeydukz9l6871&url=${encodeURIComponent(uploadedUrl)}`
+    // USAR LA NUEVA API SIN KEY - URL corregida
+    const api = `https://api-nexy.ultraplus.click/api/tools/hd?url=${encodeURIComponent(uploadedUrl)}`
+    
+    console.log('Llamando a API:', api) // Para depuración
+    
     const res = await fetch(api)
-    if (!res.ok) throw new Error(`Error en la API: ${res.statusText}`)
+    
+    if (!res.ok) {
+      throw new Error(`Error en la API: ${res.status} ${res.statusText}`)
+    }
+    
     const data = await res.json()
+    
+    // Verificar la estructura de respuesta (puede variar)
+    if (data.error) {
+      throw new Error(data.error)
+    }
+    
+    // Manejar diferentes posibles estructuras de respuesta
+    let imageUrl
+    if (data.url) {
+      imageUrl = data.url
+    } else if (data.imageUrl) {
+      imageUrl = data.imageUrl
+    } else if (data.result) {
+      imageUrl = data.result.url || data.result
+    } else if (data.data && data.data.url) {
+      imageUrl = data.data.url
+    } else {
+      // Intentar obtener directamente si la API devuelve una URL
+      const textResponse = await res.text()
+      if (textResponse.startsWith('http')) {
+        imageUrl = textResponse
+      } else {
+        throw new Error('No se pudo obtener la URL de la imagen mejorada')
+      }
+    }
 
-    if (!data.status || !data.url) throw new Error('No se pudo mejorar la imagen.')
-
-    const improvedRes = await fetch(data.url)
+    // Descargar la imagen mejorada
+    const improvedRes = await fetch(imageUrl)
+    if (!improvedRes.ok) throw new Error('No se pudo descargar la imagen mejorada')
+    
     const buffer = await improvedRes.buffer()
 
+    // Enviar la imagen mejorada
     await conn.sendMessage(m.chat, {
       image: buffer,
       caption: '✅ *Imagen mejorada con éxito*'
@@ -79,7 +101,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     await m.react('✅')
 
   } catch (e) {
-    console.error(e)
+    console.error('Error completo:', e)
     await m.react('✖️')
     await conn.sendMessage(m.chat, {
       text: `❌ Error al mejorar la imagen: ${e.message}`,
