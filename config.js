@@ -7,12 +7,12 @@ global.owner = [
   ['584125877491', 'Anonymous', true],
   ['5492644893953', 'WILKER', true],
   ['5491151545427', 'ghostdev.js', true],
-  ['114847912059070', 'Yo Soy Yo', true],
+  ['5492645746772', 'Yo Soy Yo', true],
   ['267950527389763', 'Juan Host', true],
   ['573134811343', 'Juan Host', true]
 ]
 
-global.mods = [584125877491]
+global.mods = []
 
 // 📌 Ruta de tu archivo premium.json
 const premPath = "./json/premium.json"
