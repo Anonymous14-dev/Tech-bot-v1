@@ -8,7 +8,7 @@ global.owner = [
   ['5492644893953', 'WILKER', true],
   ['5491151545427', 'ghostdev.js', true],
   ['5492645746772', 'Yo Soy Yo', true],
-  ['5492644138998', 'Juan Host', true],
+  ['5492644138998', 'wilker 2', true],
   ['573134811343', 'Juan Host', true]
 ]
 
