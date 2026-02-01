@@ -27,25 +27,38 @@ const handler = async (m, { conn, args, command, usedPrefix, isOwner }) => {
       case 'leave':
         if (!isOwner) return conn.reply(m.chat, '❌ Este comando es solo para el owner del bot.', m);
         
-        if (m.isGroup) {
-          await conn.reply(m.chat, '👋 Saliendo del grupo...', m);
-          try {
-            await conn.groupLeave(m.chat);
-            await conn.reply(m.chat, '✅ *Bot ha salido del grupo exitosamente.*', m);
-          } catch (err) {
-            console.error(err);
-            await conn.reply(m.chat, `❌ Error al salir: ${err.message}`, m);
-          }
-        } else {
-          if (!args[0]) return conn.reply(m.chat, `❌ Debes usar este comando en un grupo o proporcionar el ID del grupo.\nEjemplo: ${usedPrefix}salir 123456789@g.us`, m);
+        // Solo funciona si el mensaje viene de un grupo
+        if (!m.isGroup) {
+          return conn.reply(m.chat, `❌ Este comando solo funciona dentro de un grupo.\n\nVe al grupo donde quieres sacar al bot y escribe: ${usedPrefix}salir`, m);
+        }
+        
+        await conn.reply(m.chat, '👋 Saliendo del grupo...', m);
+        
+        try {
+          // Método 1: Intentar salir del grupo
+          await conn.groupLeave(m.chat);
           
-          const groupId = args[0].includes('@g.us') ? args[0] : args[0] + '@g.us';
-          await conn.reply(m.chat, '👋 Saliendo del grupo...', m);
-          try {
-            await conn.groupLeave(groupId);
-            await conn.reply(m.chat, '✅ *Bot ha salido del grupo exitosamente.*', m);
-          } catch (err) {
-            console.error(err);
+          // Si llegamos aquí, el bot salió exitosamente
+          // Nota: No podemos enviar mensaje después de salir, así que lo enviamos antes
+          await conn.reply(m.chat, '✅ *Bot ha salido del grupo exitosamente.*', m);
+          
+        } catch (err) {
+          console.error('Error al salir del grupo:', err);
+          
+          // Si el bot no es admin, intentamos con otro método
+          if (err.message.includes('not an admin') || err.message.includes('no permission')) {
+            await conn.reply(m.chat, '⚠️ El bot no es administrador. Intentando método alternativo...', m);
+            
+            try {
+              // Método alternativo: Expulsarnos a nosotros mismos
+              const botId = conn.user.id.split(':')[0] + '@s.whatsapp.net';
+              await conn.groupParticipantsUpdate(m.chat, [botId], 'remove');
+              await conn.reply(m.chat, '✅ *Bot ha sido expulsado del grupo.*', m);
+            } catch (err2) {
+              console.error('Error en método alternativo:', err2);
+              await conn.reply(m.chat, `❌ No se pudo sacar al bot. Posibles causas:\n• El bot no es admin\n• El grupo está restringido\n• Error: ${err2.message}`, m);
+            }
+          } else {
             await conn.reply(m.chat, `❌ Error al salir: ${err.message}`, m);
           }
         }
@@ -95,7 +108,7 @@ const handler = async (m, { conn, args, command, usedPrefix, isOwner }) => {
 handler.command = ['join', 'salir', 'leave', 'grupos', 'groups'];
 handler.help = [
   'join <enlace> - Unir bot a un grupo (Owner)',
-  'salir - Sacar bot del grupo (Owner)',
+  'salir - Sacar bot del grupo (Owner - usar dentro del grupo)',
   'grupos - Ver lista de grupos (Owner)'
 ];
 handler.tags = ['owner'];
